@@ -28,8 +28,9 @@
             top: 20px; right: 20px; left: 20px;
             background: rgba(20, 15, 15, 0.95); 
             border-left: 4px solid #d4af37;
-            color: white; padding: 18px; border-radius: 12px; display: none; z-index: 5; backdrop-filter: blur(10px);
+            color: white; padding: 18px; border-radius: 12px; display: none; z-index: 30; backdrop-filter: blur(10px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            pointer-events: auto; /* Autorise impérativement les clics */
         }
         @media(min-width: 768px) { #hud-cartel { right: 30px; left: auto; width: 350px; top: 30px; } }
         #hud-cartel h2 { margin: 0 0 4px 0; font-size: 1.2em; color: #f3e5ab; }
@@ -37,7 +38,6 @@
         #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; margin-bottom: 15px; }
         .mrc-tag { font-size: 0.65em; background: #d4af37; color: #111; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 6px; }
         
-        /* DESIGNS DES BOUTONS WEB3 INTERACTIFS */
         .web3-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
         .btn-web3 { 
             display: block; text-align: center; text-decoration: none;
@@ -48,6 +48,8 @@
         .btn-primary-w3:hover { background: #f3e5ab; }
         .btn-secondary-w3 { background: transparent; color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.5); }
         .btn-secondary-w3:hover { background: rgba(212, 175, 55, 0.1); border-color: #d4af37; }
+
+        #shortcut-hint { font-size: 11px; text-align: center; color: #8a7a70; font-family: monospace; margin-top: 5px; font-weight: bold; }
 
         #loading-status { color: #d4af37; font-size: 13px; margin-top: 15px; font-family: monospace; }
     </style>
@@ -88,6 +90,7 @@
         <div class="web3-actions">
             <a id="web3-btn-marketplace" href="#" target="_blank" class="btn-web3 btn-primary-w3">FAIRE UNE OFFRE</a>
             <a id="web3-btn-scan" href="#" target="_blank" class="btn-web3 btn-secondary-w3">VOIR SUR POLYGONSCAN</a>
+            <div id="shortcut-hint">💡 Astuce PC : Appuyez sur [ECHAF / ESC] pour libérer la souris et cliquer.</div>
         </div>
     </div>
 
@@ -102,6 +105,8 @@
         const euler = new THREE.Euler(0, 0, 0, 'YXZ');
         const artworks = []; 
         const raycasterProximite = new THREE.Raycaster();
+
+        let currentActiveTokenId = null; // Suit le token actuellement regardé
 
         const contractAddress = "0x5De79f385FFe00DD5951AaB522082B6F76a084ac"; 
         const monEndpointRPC = "https://polygon-mainnet.g.alchemy.com/v2/LhJWDQu5B7mVyn18mVfI0"; 
@@ -130,7 +135,10 @@
             controls = new PointerLockControls(camera, document.body);
             const blocker = document.getElementById('blocker');
             
-            blocker.addEventListener('click', () => {
+            blocker.addEventListener('click', (e) => {
+                // Si on clique sur le cartel ou ses enfants, on n'active pas le verrouillage de caméra
+                if(document.getElementById('hud-cartel').contains(e.target)) return;
+
                 if (!isMobile) {
                     controls.lock();
                 } else {
@@ -142,7 +150,15 @@
             controls.addEventListener('lock', () => blocker.style.display = 'none');
             controls.addEventListener('unlock', () => { if(!isMobile) blocker.style.display = 'flex'; });
 
-            document.addEventListener('keydown', (e) => handleKey(e.code, true));
+            // Raccourcis Clavier PC
+            document.addEventListener('keydown', (e) => {
+                handleKey(e.code, true);
+                
+                // Touche "E" ou "Entrée" : Raccourci pour ouvrir directement la page commerciale de l'oeuvre ciblée !
+                if ((e.code === 'KeyE' || e.code === 'Enter') && currentActiveTokenId !== null && controls.isLocked) {
+                    window.open(`https://opensea.io/assets/polygon/${contractAddress}/${currentActiveTokenId}`, '_blank');
+                }
+            });
             document.addEventListener('keyup', (e) => handleKey(e.code, false));
 
             if (isMobile) initMobileControls();
@@ -150,7 +166,6 @@
 
             scene.add(new THREE.AmbientLight(0xffecc4, 0.12)); 
 
-            // Matériaux du circuit Louvre
             const textureLoader = new THREE.TextureLoader();
             const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
             floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(8, 8);
@@ -302,12 +317,15 @@
             setupBtn('btn-left', (val) => moveLeft = val);
             setupBtn('btn-right', (val) => moveRight = val);
 
+            // Gère le swipe de regard uniquement si on ne touche pas le cartel informatif
             window.addEventListener('touchstart', (e) => {
+                if (document.getElementById('hud-cartel').contains(e.target)) return;
                 if (e.touches[0].clientX < window.innerWidth / 2) return;
                 touchStartPoint.x = e.touches[0].clientX; touchStartPoint.y = e.touches[0].clientY;
             }, { passive: true });
 
             window.addEventListener('touchmove', (e) => {
+                if (document.getElementById('hud-cartel').contains(e.target)) return;
                 if (e.touches[0].clientX < window.innerWidth / 2) return;
                 const deltaX = e.touches[0].clientX - touchStartPoint.x;
                 const deltaY = e.touches[0].clientY - touchStartPoint.y;
@@ -359,22 +377,29 @@
             const hud = document.getElementById('hud-cartel');
             if (intersects.length > 0 && intersects[0].distance < 3.8) {
                 const data = intersects[0].object.userData;
+                currentActiveTokenId = data.id; // Enregistre l'ID cible
+
                 document.getElementById('art-title').innerText = data.title;
                 document.getElementById('art-artist').innerText = data.artist;
                 document.getElementById('art-desc').innerText = data.desc; 
 
-                // --- INJECTION DYNAMIQUE DES LIENS WEB3 DU TOKEN ENGAGÉ ---
                 const btnScan = document.getElementById('web3-btn-scan');
                 const btnMarket = document.getElementById('web3-btn-marketplace');
+                const hintText = document.getElementById('shortcut-hint');
                 
-                // Lien direct Polygonscan ciblé sur le Token ID exact
                 btnScan.href = `https://polygonscan.com/token/${contractAddress}?a=${data.id}`;
-                
-                // Lien commercial OpenSea ciblé sur le Token ID exact
                 btnMarket.href = `https://opensea.io/assets/polygon/${contractAddress}/${data.id}`;
+
+                if(!isMobile) {
+                    hintText.innerHTML = `💡 Astuce PC : Appuyez sur [E] pour aller sur OpenSea<br>ou [ÉCHAP] pour libérer la souris et cliquer.`;
+                } else {
+                    hintText.innerHTML = `Toucher un bouton pour exécuter l'action.`;
+                }
 
                 hud.style.display = 'block';
             } else {
+                // Si on s'éloigne, on désactive le token actif
+                if(intersects.length === 0) currentActiveTokenId = null;
                 hud.style.display = 'none';
             }
 
