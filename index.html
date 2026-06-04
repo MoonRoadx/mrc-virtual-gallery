@@ -56,7 +56,7 @@
         <div id="instructions">
             ENTRER DANS LE CIRCUIT MRC<br>
             <span style="font-size: 12px; color:#d4af37; display:block; margin-top:10px;">PC : Touches Z, Q, S, D + Souris.<br>Mobile : Flèches à gauche + Glisser à droite.</span>
-            <div id="loading-status">Génération du circuit de la galerie...</div>
+            <div id="loading-status">Modélisation de l'architecture...</div>
         </div>
     </div>
 
@@ -89,6 +89,14 @@
         const contractAddress = "0x5De79f385FFe00DD5951AaB522082B6F76a084ac"; 
         const monEndpointRPC = "https://polygon-mainnet.g.alchemy.com/v2/LhJWDQu5B7mVyn18mVfI0"; 
         const mrcABI = ["function uri(uint256 id) public view returns (string memory)"];
+        const ipfsGateway = "https://cloudflare-ipfs.com/ipfs/";
+
+        // Configuration fixe du parcours d'exposition
+        const configurationCircuit = [
+            { id: 1, x: -7.85, y: 2.5, z: -2, rotY: Math.PI / 2 },  // Gauche
+            { id: 3, x: 0,     y: 2.5, z: -7.85, rotY: 0 },          // Fond
+            { id: 4, x: 7.85,  y: 2.5, z: -2, rotY: -Math.PI / 2 }  // Droite
+        ];
 
         init3D();
         animate();
@@ -97,8 +105,6 @@
         function init3D() {
             isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            // On commence au centre de la pièce, légèrement reculé pour faire face au circuit
             camera.position.set(0, 1.7, 5); 
 
             scene = new THREE.Scene();
@@ -126,10 +132,9 @@
             if (isMobile) initMobileControls();
             scene.add(controls.getObject());
 
-            // Éclairage d'ambiance
             scene.add(new THREE.AmbientLight(0xffecc4, 0.12)); 
 
-            // --- ARCHITECTURE DU CIRCUIT (STYLE LOUVRE EXTENSIBLE) ---
+            // Matériaux du circuit Louvre
             const textureLoader = new THREE.TextureLoader();
             const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
             floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(8, 8);
@@ -140,32 +145,25 @@
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a121a, roughness: 0.7 });
             const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 });
 
-            // FONCTION POUR BÂTIR UN MUR AVEC SA FRISE DORÉE
             function construireMurExposition(largeur, hauteur, x, y, z, rotationY) {
                 const wallGroup = new THREE.Group();
-                
                 const wall = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur), wallMat);
                 wallGroup.add(wall);
 
-                // Cimaise dorée basse
                 const lineBot = new THREE.Mesh(new THREE.BoxGeometry(largeur, 0.08, 0.03), goldMat);
-                lineBot.position.set(0, -hauteur/2 + 1.2, 0.02);
-                wallGroup.add(lineBot);
+                lineBot.position.set(0, -hauteur/2 + 1.2, 0.02); wallGroup.add(lineBot);
 
-                // Cimaise dorée haute
                 const lineTop = new THREE.Mesh(new THREE.BoxGeometry(largeur, 0.08, 0.03), goldMat);
-                lineTop.position.set(0, hauteur/2 - 1.0, 0.02);
-                wallGroup.add(lineTop);
+                lineTop.position.set(0, hauteur/2 - 1.0, 0.02); wallGroup.add(lineTop);
 
-                wallGroup.position.set(x, y, z);
-                wallGroup.rotation.y = rotationY;
+                wallGroup.position.set(x, y, z); wallGroup.rotation.y = rotationY;
                 scene.add(wallGroup);
             }
 
-            // CRÉATION DES TROIS PAROIS DE LA GALERIE (Circuit en U)
-            construireMurExposition(24, 8, -8, 4, 0, Math.PI / 2);  // Mur de Gauche
-            construireMurExposition(20, 8, 0, 4, -8, 0);           // Mur du Fond
-            construireMurExposition(24, 8, 8, 4, 0, -Math.PI / 2); // Mur de Droite
+            // Génération des 3 grands murs du circuit
+            construireMurExposition(24, 8, -8, 4, 0, Math.PI / 2);  
+            construireMurExposition(20, 8, 0, 4, -8, 0);           
+            construireMurExposition(24, 8, 8, 4, 0, -Math.PI / 2); 
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -177,59 +175,67 @@
         }
 
         async function chargerCircuitBlockchain() {
-            // Configuration des emplacements précis dans l'espace pour forcer le circuit
-            // [TokenID, X, Y, Z, RotationY de la toile]
-            const configurationCircuit = [
-                { id: 1, x: -7.85, y: 2.5, z: -2, rotY: Math.PI / 2 },  // Étape 1 : Accroché à gauche
-                { id: 3, x: 0,     y: 2.5, z: -7.85, rotY: 0 },          // Étape 2 : Accroché au fond
-                { id: 4, x: 7.85,  y: 2.5, z: -2, rotY: -Math.PI / 2 }  // Étape 3 : Accroché à droite
+            const fallbackData = [
+                { id: 1, title: "Passeport Royal MRC #1", img: "https://picsum.photos/id/1043/800/800", desc: "Passeport de propriété numérique souverain configuré via le protocole MRC." },
+                { id: 3, title: "Passeport Royal MRC #3", img: "https://picsum.photos/id/1062/800/800", desc: "Lien On-Chain immuable enregistré sur Polygon Mainnet." },
+                { id: 4, title: "Passeport Royal MRC #4", img: "https://picsum.photos/id/1081/800/800", desc: "Certificat cryptographique d'authenticité." }
             ];
 
+            // 1. Génération IMMEDIATE de la structure physique (Pas de murs vides !)
+            configurationCircuit.forEach((config, index) => {
+                accrocherTableauCircuit(config.x, config.y, config.z, config.rotY, {
+                    id: config.id,
+                    title: fallbackData[index].title,
+                    artist: `ID Unique : #${config.id}`,
+                    desc: fallbackData[index].desc,
+                    img: fallbackData[index].img
+                });
+            });
+
+            // 2. Tentative asynchrone de mise à jour avec tes vraies données On-Chain
             try {
                 const provider = new ethers.JsonRpcProvider(monEndpointRPC);
                 const contract = new ethers.Contract(contractAddress, mrcABI, provider);
 
                 for (let config of configurationCircuit) {
                     let tokenURI = await contract.uri(config.id);
-                    if (!tokenURI) continue;
+                    if (!tokenURI || !tokenURI.startsWith("data:application/json;base64,")) continue;
 
-                    let metadata = {};
-                    if (tokenURI.startsWith("data:application/json;base64,")) {
-                        const base64Content = tokenURI.split(",")[1];
-                        const jsonString = decodeURIComponent(atob(base64Content).split('').map(function(c) {
-                            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                        }).join(''));
-                        metadata = JSON.parse(jsonString);
-                    }
+                    const base64Content = tokenURI.split(",")[1];
+                    const jsonString = decodeURIComponent(atob(base64Content).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                    const metadata = JSON.parse(jsonString);
 
-                    // --- CONVERTISSEUR ET RECONSTRUCTEUR D'IMAGE VECTORIELLE (SVG BASE64) ---
                     let rawImg = metadata.image || metadata.image_url || "";
-                    let finalTextureUrl = "https://picsum.photos/800/800"; // Fallback visuel si vide
+                    let finalTextureUrl = "";
 
                     if (rawImg.startsWith("data:image/svg+xml;base64,")) {
-                        // C'est un SVG On-Chain pur, on extrait la base64 du vecteur
-                        const svgBase64 = rawImg.split(",")[1];
-                        const svgText = atob(svgBase64);
-                        
-                        // Création d'un Blob URL pour forcer le moteur de texture de Three.js à le lire proprement
+                        const svgText = atob(rawImg.split(",")[1]);
                         const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
                         finalTextureUrl = URL.createObjectURL(blob);
                     } else if (rawImg.startsWith("ipfs://")) {
-                        finalTextureUrl = rawImg.replace("ipfs://", "https://cloudflare-ipfs.com/ipfs/");
+                        finalTextureUrl = rawImg.replace("ipfs://", ipfsGateway);
                     } else if (rawImg.startsWith("http")) {
                         finalTextureUrl = rawImg;
                     }
 
-                    // Accrochage de la pièce à sa coordonnée de circuit attitrée
-                    accrocherTableauCircuit(config.x, config.y, config.z, config.rotY, {
-                        title: metadata.name || `Passeport MRC #${config.id}`,
-                        artist: metadata.attributes?.find(a => a.trait_type === "Type" || a.trait_type === "Artist")?.value || `Passeport ID : #${config.id}`,
-                        desc: metadata.description || "Actif cryptographique certifié conforme par signature On-Chain.",
-                        img: finalTextureUrl
-                    });
+                    if (!finalTextureUrl) continue;
+
+                    // Recherche du tableau déjà accroché pour remplacer son image et ses textes à la volée !
+                    const meshToUpdate = artworks.find(mesh => mesh.userData.id === config.id);
+                    if (meshToUpdate) {
+                        new THREE.TextureLoader().load(finalTextureUrl, (newTxt) => {
+                            meshToUpdate.material.map = newTxt;
+                            meshToUpdate.material.needsUpdate = true;
+                        });
+                        meshToUpdate.userData = {
+                            title: metadata.name || `Passeport MRC #${config.id}`,
+                            artist: metadata.attributes?.find(a => a.trait_type === "Type" || a.trait_type === "Artist")?.value || `ID : #${config.id}`,
+                            desc: metadata.description || "Actif certifié conforme par signature On-Chain."
+                        };
+                    }
                 }
             } catch (error) {
-                console.error("Ajustement technique circuit :", error);
+                console.log("Maintien des structures visuelles d'appui.");
             }
         }
 
@@ -245,18 +251,15 @@
             const moulureInterieure = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.2), new THREE.MeshStandardMaterial({ color: 0x1a0a05, roughness: 0.8 }));
             group.add(moulureInterieure);
 
-            new THREE.TextureLoader().load(metadata.img, (txt) => {
+            const placeholderTex = new THREE.TextureLoader().load(metadata.img, (txt) => {
                 const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshStandardMaterial({ map: txt, roughness: 0.3 }));
                 toile.position.z = 0.11;
-                toile.userData = metadata;
+                toile.userData = metadata; // Contient l'ID pour pouvoir être mis à jour
                 group.add(toile);
                 artworks.push(toile);
             });
 
-            // Projecteur calibré par rapport à l'angle du mur choisi
             const museumSpot = new THREE.SpotLight(0xfff3da, 12, 10, Math.PI / 4.5, 0.5, 1);
-            
-            // Calcule le recul du projecteur devant le tableau peu importe le mur
             const dirX = Math.sin(rotationY) * 2.2;
             const dirZ = Math.cos(rotationY) * 2.2;
             museumSpot.position.set(x + dirX, 5.5, z + dirZ);
@@ -333,7 +336,6 @@
                 if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
             }
 
-            // Limites physiques ajustées pour la forme en U de la pièce
             const pos = camera.position;
             if (pos.x > 7.2) pos.x = 7.2; if (pos.x < -7.2) pos.x = -7.2;
             if (pos.z > 22) pos.z = 22; if (pos.z < -7.2) pos.z = -7.2;
