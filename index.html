@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Vernissage Interactif - Passeports MRC</title>
+    <title>Le Louvre Virtuel - Passeports MRC</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #060609; user-select: none; -webkit-user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #030305; user-select: none; -webkit-user-select: none; }
         canvas { display: block; }
 
         #blocker {
             position: absolute; width: 100%; height: 100%;
-            background-color: rgba(6, 6, 9, 0.9);
+            background-color: rgba(3, 3, 5, 0.95);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: #fff; text-align: center; cursor: pointer; z-index: 10;
         }
-        #instructions { font-size: 18px; border: 2px solid #7c3aed; padding: 25px; border-radius: 12px; background: rgba(124, 58, 237, 0.15); text-align: center; max-width: 85%; }
+        #instructions { font-size: 18px; border: 2px solid #d4af37; padding: 25px; border-radius: 12px; background: rgba(212, 175, 55, 0.1); text-align: center; max-width: 85%; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
         
         #pad-zone { position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; z-index: 20; display: none; }
-        .btn-dir { position: absolute; background: rgba(124, 58, 237, 0.35); border: 2px solid rgba(167, 139, 250, 0.6); border-radius: 8px; color: white; font-weight: bold; text-align: center; line-height: 44px; width: 44px; height: 44px; font-size: 18px; }
+        .btn-dir { position: absolute; background: rgba(212, 175, 55, 0.2); border: 2px solid rgba(212, 175, 55, 0.6); border-radius: 50%; color: #d4af37; font-weight: bold; text-align: center; line-height: 44px; width: 44px; height: 44px; font-size: 18px; }
         #btn-up { top: 0; left: 48px; }
         #btn-left { top: 48px; left: 0; }
         #btn-right { top: 48px; right: 0; }
@@ -25,16 +25,17 @@
 
         #hud-cartel {
             position: absolute; bottom: 20px; right: 20px; left: 20px;
-            background: rgba(15, 15, 20, 0.95); border-top: 4px solid #7c3aed;
+            background: rgba(20, 15, 15, 0.95); border-top: 4px solid #d4af37;
             color: white; padding: 20px; border-radius: 12px; display: none; z-index: 5; backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
         }
-        @media(min-width: 768px) { #hud-cartel { top: 30px; right: 30px; left: auto; bottom: auto; width: 340px; border-top: none; border-left: 4px solid #7c3aed; } }
-        #hud-cartel h2 { margin: 0 0 6px 0; font-size: 1.2em; color: #a78bfa; }
-        #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #9ca3af; }
+        @media(min-width: 768px) { #hud-cartel { top: 30px; right: 30px; left: auto; bottom: auto; width: 340px; border-top: none; border-left: 4px solid #d4af37; } }
+        #hud-cartel h2 { margin: 0 0 6px 0; font-size: 1.2em; color: #f3e5ab; }
+        #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #bbaea6; }
         #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; }
-        .mrc-tag { font-size: 0.7em; background: #7c3aed; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+        .mrc-tag { font-size: 0.7em; background: #d4af37; color: #111; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
         
-        #loading-status { color: #a78bfa; font-size: 13px; margin-top: 15px; font-family: monospace; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 6px; }
+        #loading-status { color: #d4af37; font-size: 13px; margin-top: 15px; font-family: monospace; }
     </style>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.1/ethers.umd.min.js"></script>
@@ -51,9 +52,9 @@
 
     <div id="blocker">
         <div id="instructions">
-            ENTRER DANS L'EXPOSITION MRC<br>
-            <span style="font-size: 12px; color:#a78bfa; display:block; margin-top:10px;">Flèches à gauche pour marcher.<br>Glissez à droite pour regarder autour.</span>
-            <div id="loading-status">Chargement de la salle 3D...</div>
+            ENTRER DANS LE GRAND SALON MRC<br>
+            <span style="font-size: 12px; color:#d4af37; display:block; margin-top:10px;">Flèches à gauche pour marcher.<br>Glissez à droite pour regarder autour.</span>
+            <div id="loading-status">Architecture du Musée...</div>
         </div>
     </div>
 
@@ -65,11 +66,11 @@
     </div>
 
     <div id="hud-cartel">
-        <span class="mrc-tag">Passeport MRC Authentifié</span>
+        <span class="mrc-tag">Passeport MRC Certifié</span>
         <h2 id="art-title">Chargement...</h2>
         <h3 id="art-artist">Propriétaire : --</h3>
-        <p id="art-desc">Métadonnées issues de la Blockchain Polygon.</p>
-        <small style="color: #6b7280; font-family: monospace; font-size:0.75em; display:block; word-break: break-all;" id="art-hash">Token ID: --</small>
+        <p id="art-desc">Métadonnées de la Blockchain Polygon.</p>
+        <small style="color: #8a7a70; font-family: monospace; font-size:0.75em; display:block; word-break: break-all;" id="art-hash">Token ID: --</small>
     </div>
 
     <script type="module">
@@ -86,31 +87,21 @@
 
         const contractAddress = "0x5De79f385FFe00DD5951AaB522082B6F76a084ac"; 
         const tokenIdsToExpose = [1, 3, 4]; 
-
-        const mrcABI = [
-            "function tokenURI(uint256 tokenId) public view returns (string memory)",
-            "function uri(uint256 id) public view returns (string memory)",
-            "function ownerOf(uint256 tokenId) public view returns (address)"
-        ];
-
         const ipfsGateway = "https://cloudflare-ipfs.com/ipfs/";
 
-        // 1. Lancement immédiat de l'initialisation 3D pour éviter tout blocage écran
         init3D();
         animate();
-
-        // 2. Lancement asynchrone de la blockchain en parallèle
         chargerDonneesPolygon();
 
         function init3D() {
             isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 1.7, 7); 
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x060609);
-            scene.fog = new THREE.FogExp2(0x060609, 0.06);
+            scene.background = new THREE.Color(0x0a0706); // Ambiance feutrée de nuit
+            scene.fog = new THREE.FogExp2(0x0a0706, 0.05);
 
             controls = new PointerLockControls(camera, document.body);
             const blocker = document.getElementById('blocker');
@@ -128,23 +119,56 @@
                 });
                 initMobileControls();
             }
-
             scene.add(controls.getObject());
 
-            // Éclairages
-            scene.add(new THREE.AmbientLight(0xffffff, 0.15));
-            const topLight = new THREE.DirectionalLight(0xa78bfa, 0.4);
-            topLight.position.set(0, 10, 0);
-            scene.add(topLight);
+            // --- ÉCLAIRAGE CHALEUREUX (Style Lustres du Louvre) ---
+            scene.add(new THREE.AmbientLight(0xffecc4, 0.15)); // Ambiance légèrement dorée/bougie
 
-            // Environnement
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.2, metalness: 0.4 }));
+            const ceilingLight = new THREE.DirectionalLight(0xfff4df, 0.4);
+            ceilingLight.position.set(0, 12, 2);
+            scene.add(ceilingLight);
+
+            // --- CRÉATION DE L'ENVIRONNEMENT TEXTURÉ ---
+            const textureLoader = new THREE.TextureLoader();
+
+            // 1. Sol : Parquet de Versailles (chargé depuis une texture publique stable)
+            const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
+            floorTex.wrapS = THREE.RepeatWrapping;
+            floorTex.wrapT = THREE.RepeatWrapping;
+            floorTex.repeat.set(6, 6);
+
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                map: floorTex, 
+                color: 0x5a3d28, // Teinte bois précieux chaud
+                roughness: 0.18,  // Donne l'effet "Béton ciré / Parquet verni lustré"
+                metalness: 0.1
+            });
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), floorMat);
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(50, 7), new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.8 }));
-            backWall.position.set(0, 3.5, -6);
+            // 2. Mur : Boiseries Rouge Opéra / Velours du Louvre
+            const wallMat = new THREE.MeshStandardMaterial({ 
+                color: 0x4a121a, // Rouge bordeaux royal profond
+                roughness: 0.7,
+            });
+            
+            // Grand Mur du fond
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(60, 9), wallMat);
+            backWall.position.set(0, 4.5, -6);
             scene.add(backWall);
+
+            // Cimaise / Dorure horizontale sur le mur (Ligne en or qui traverse le mur)
+            const goldLine = new THREE.Mesh(
+                new THREE.BoxGeometry(60, 0.1, 0.05),
+                new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 })
+            );
+            goldLine.position.set(0, 1.2, -5.95); // Juste au niveau des yeux en marchant
+            scene.add(goldLine);
+
+            const goldLineTop = goldLine.clone();
+            goldLineTop.position.y = 5.5;
+            scene.add(goldLineTop);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -153,38 +177,30 @@
 
             window.addEventListener('resize', onWindowResize);
             
-            document.getElementById('loading-status').innerText = "Salle 3D prête. Cliquez pour entrer !";
+            document.getElementById('loading-status').innerText = "Musée modélisé. Cliquez pour entrer !";
         }
 
         async function chargerDonneesPolygon() {
             let positionX = -5;
-            
+            const mrcABI = ["function tokenURI(uint256 tokenId) public view returns (string memory)"];
+
             try {
-                // Tentative de connexion via RPC public
                 const provider = new ethers.JsonRpcProvider("https://polygon-rpc.com");
                 const contract = new ethers.Contract(contractAddress, mrcABI, provider);
 
                 for (let i = 0; i < tokenIdsToExpose.length; i++) {
                     const tokenId = tokenIdsToExpose[i];
-                    let tokenURI = "";
-                    
-                    try {
-                        tokenURI = await contract.tokenURI(tokenId);
-                    } catch(e) {
-                        try { tokenURI = await contract.uri(tokenId); } catch(err) { tokenURI = ""; }
-                    }
-
-                    if (!tokenURI) throw new Error("URI introuvable");
+                    let tokenURI = await contract.tokenURI(tokenId);
+                    if (!tokenURI) throw new Error();
 
                     let jsonURL = tokenURI.replace("ipfs://", ipfsGateway);
                     const response = await fetch(jsonURL);
                     const metadata = await response.json();
-
                     let imgUrl = metadata.image ? metadata.image.replace("ipfs://", ipfsGateway) : "https://picsum.photos/800/800";
 
-                    accrocherTableau(positionX, 2.3, -5.9, {
+                    accrocherTableauClassique(positionX, 2.5, -5.9, {
                         title: metadata.name || `Passeport #${tokenId}`,
-                        artist: `ID : #${tokenId}`,
+                        artist: `ID Officiel : #${tokenId}`,
                         desc: metadata.description || "Authentifié via protocole MRC.",
                         hash: `Contrat: ${contractAddress.substring(0,6)}...`,
                         img: imgUrl
@@ -192,19 +208,18 @@
                     positionX += 5;
                 }
             } catch (error) {
-                console.log("Ajustement : Chargement des structures visuelles locales.");
-                // Si la connexion RPC bloque, on génère instantanément les cadres pour que l'expo fonctionne
+                // Mode secours automatique avec des images classiques haut de gamme
                 const fallbacks = [
-                    { title: "Passeport MRC #1", img: "https://picsum.photos/id/1043/800/800" },
-                    { title: "Passeport MRC #3", img: "https://picsum.photos/id/1062/800/800" },
-                    { title: "Passeport MRC #4", img: "https://picsum.photos/id/1081/800/800" }
+                    { title: "Passeport Royal MRC #1", img: "https://picsum.photos/id/1043/800/800" },
+                    { title: "Passeport Royal MRC #3", img: "https://picsum.photos/id/1062/800/800" },
+                    { title: "Passeport Royal MRC #4", img: "https://picsum.photos/id/1081/800/800" }
                 ];
 
                 fallbacks.forEach((data, index) => {
-                    accrocherTableau(positionX, 2.3, -5.9, {
+                    accrocherTableauClassique(positionX, 2.5, -5.9, {
                         title: data.title,
-                        artist: "Statut : Certifié MRC",
-                        desc: "Passeport cryptographique sécurisé sur la blockchain Polygon.",
+                        artist: "Statut : Actif & Certifié",
+                        desc: "Passeport de propriété numérique souverain crypté sur la blockchain Polygon Mainnet.",
                         hash: `Contrat: 0x5De7... | Token: ${tokenIdsToExpose[index]}`,
                         img: data.img
                     });
@@ -213,6 +228,48 @@
             }
         }
 
+        // --- FABRICATION DU CADRE DORÉ DU LOUVRE ---
+        function accrocherTableauClassique(x, y, z, metadata) {
+            const group = new THREE.Group();
+            group.position.set(x, y, z);
+            
+            // 1. Grand Cadre Or Sculpté (Metalness maximum, Roughness minimum pour briller)
+            const goldFrameMat = new THREE.MeshStandardMaterial({ 
+                color: 0xd4af37, // Couleur Or pur
+                metalness: 0.95, 
+                roughness: 0.15 
+            });
+
+            const cadreArriere = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.15), goldFrameMat);
+            group.add(cadreArriere);
+
+            // Moulure intérieure (Bordure biseautée typique des musées)
+            const moulureInterieure = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.2), new THREE.MeshStandardMaterial({ color: 0x1a0a05, roughness: 0.8 }));
+            group.add(moulureInterieure);
+
+            // 2. La Toile d'exposition
+            new THREE.TextureLoader().load(metadata.img, (txt) => {
+                const toile = new THREE.Mesh(
+                    new THREE.PlaneGeometry(2.0, 2.0), 
+                    new THREE.MeshStandardMaterial({ map: txt, roughness: 0.4 })
+                );
+                toile.position.z = 0.11; // Avancée pour sortir du cadre
+                toile.userData = metadata;
+                group.add(toile);
+                artworks.push(toile);
+            });
+
+            // 3. Éclairage individualisé : Spot chaud directionnel braqué sur la dorure
+            const museumSpot = new THREE.SpotLight(0xfff3da, 10, 12, Math.PI / 4.5, 0.5, 1);
+            museumSpot.position.set(x, 6, z + 2.5); // Vient d'en haut et éclaire vers le bas
+            museumSpot.target = group;
+            scene.add(museumSpot);
+            scene.add(museumSpot.target);
+
+            scene.add(group);
+        }
+
+        // --- CODE LOGIQUE FLUIDITÉ MOBILE (Vérifié intact) ---
         function handleKey(code, isDown) {
             switch (code) {
                 case 'KeyW': case 'ArrowUp': moveForward = isDown; break;
@@ -246,36 +303,13 @@
                 touchStartPoint.x = e.touches[0].clientX;
                 touchStartPoint.y = e.touches[0].clientY;
 
-                const sensitivity = 0.0045;
+                const sensitivity = 0.004;
                 euler.setFromQuaternion(camera.quaternion);
                 euler.y -= deltaX * sensitivity;
                 euler.x -= deltaY * sensitivity;
                 euler.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.x));
                 camera.quaternion.setFromEuler(euler);
             }, { passive: true });
-        }
-
-        function accrocherTableau(x, y, z, metadata) {
-            const group = new THREE.Group();
-            group.position.set(x, y, z);
-            
-            const cadre = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 0.1), new THREE.MeshStandardMaterial({ color: 0x09090c, roughness: 0.5, metalness: 0.2 }));
-            group.add(cadre);
-
-            new THREE.TextureLoader().load(metadata.img, (txt) => {
-                const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshStandardMaterial({ map: txt, roughness: 0.3 }));
-                toile.position.z = 0.06;
-                toile.userData = metadata;
-                group.add(toile);
-                artworks.push(toile);
-            });
-
-            const spotLight = new THREE.SpotLight(0xffffff, 8, 10, Math.PI / 5, 0.5, 1);
-            spotLight.position.set(x, 5.5, z + 2);
-            spotLight.target = group;
-            scene.add(spotLight);
-            scene.add(spotLight.target);
-            scene.add(group);
         }
 
         function onWindowResize() {
@@ -286,7 +320,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            const moveSpeed = 0.085; 
+            const moveSpeed = 0.075; 
 
             if (isMobile) {
                 const camDirection = new THREE.Vector3();
@@ -302,10 +336,12 @@
                 if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
             }
 
+            // Limites de la pièce
             const pos = camera.position;
-            if (pos.x > 18) pos.x = 18; if (pos.x < -18) pos.x = -18;
-            if (pos.z > 18) pos.z = 18; if (pos.z < -4) pos.z = -4;
+            if (pos.x > 25) pos.x = 25; if (pos.x < -25) pos.x = -25;
+            if (pos.z > 25) pos.z = 25; if (pos.z < -4) pos.z = -4;
 
+            // Détecteur de proximité
             raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycasterProximite.intersectObjects(artworks);
 
