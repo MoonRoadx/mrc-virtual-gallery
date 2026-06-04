@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Le Louvre Virtuel - Circuit Passeports MRC</title>
+    <title>Le Louvre Virtuel - Expérience MRC Premium</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #030305; user-select: none; -webkit-user-select: none; }
         canvas { display: block; }
@@ -30,7 +30,7 @@
             border-left: 4px solid #d4af37;
             color: white; padding: 18px; border-radius: 12px; display: none; z-index: 30; backdrop-filter: blur(10px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-            pointer-events: auto; /* Autorise impérativement les clics */
+            pointer-events: auto;
         }
         @media(min-width: 768px) { #hud-cartel { right: 30px; left: auto; width: 350px; top: 30px; } }
         #hud-cartel h2 { margin: 0 0 4px 0; font-size: 1.2em; color: #f3e5ab; }
@@ -50,7 +50,6 @@
         .btn-secondary-w3:hover { background: rgba(212, 175, 55, 0.1); border-color: #d4af37; }
 
         #shortcut-hint { font-size: 11px; text-align: center; color: #8a7a70; font-family: monospace; margin-top: 5px; font-weight: bold; }
-
         #loading-status { color: #d4af37; font-size: 13px; margin-top: 15px; font-family: monospace; }
     </style>
     
@@ -68,9 +67,9 @@
 
     <div id="blocker">
         <div id="instructions">
-            ENTRER DANS LE CIRCUIT MRC<br>
+            ENTRER DANS LE GRAND SALON MRC<br>
             <span style="font-size: 12px; color:#d4af37; display:block; margin-top:10px;">PC : Touches Z, Q, S, D + Souris.<br>Mobile : Flèches à gauche + Glisser à droite.</span>
-            <div id="loading-status">Modélisation de l'architecture...</div>
+            <div id="loading-status">Modélisation du mobilier royal...</div>
         </div>
     </div>
 
@@ -90,7 +89,7 @@
         <div class="web3-actions">
             <a id="web3-btn-marketplace" href="#" target="_blank" class="btn-web3 btn-primary-w3">FAIRE UNE OFFRE</a>
             <a id="web3-btn-scan" href="#" target="_blank" class="btn-web3 btn-secondary-w3">VOIR SUR POLYGONSCAN</a>
-            <div id="shortcut-hint">💡 Astuce PC : Appuyez sur [ECHAF / ESC] pour libérer la souris et cliquer.</div>
+            <div id="shortcut-hint">💡 Astuce PC : Appuyez sur [ECHAF] pour libérer la souris.</div>
         </div>
     </div>
 
@@ -106,7 +105,7 @@
         const artworks = []; 
         const raycasterProximite = new THREE.Raycaster();
 
-        let currentActiveTokenId = null; // Suit le token actuellement regardé
+        let currentActiveTokenId = null;
 
         const contractAddress = "0x5De79f385FFe00DD5951AaB522082B6F76a084ac"; 
         const monEndpointRPC = "https://polygon-mainnet.g.alchemy.com/v2/LhJWDQu5B7mVyn18mVfI0"; 
@@ -136,12 +135,9 @@
             const blocker = document.getElementById('blocker');
             
             blocker.addEventListener('click', (e) => {
-                // Si on clique sur le cartel ou ses enfants, on n'active pas le verrouillage de caméra
                 if(document.getElementById('hud-cartel').contains(e.target)) return;
-
-                if (!isMobile) {
-                    controls.lock();
-                } else {
+                if (!isMobile) controls.lock();
+                else {
                     blocker.style.display = 'none';
                     document.getElementById('pad-zone').style.display = 'block';
                 }
@@ -150,11 +146,8 @@
             controls.addEventListener('lock', () => blocker.style.display = 'none');
             controls.addEventListener('unlock', () => { if(!isMobile) blocker.style.display = 'flex'; });
 
-            // Raccourcis Clavier PC
             document.addEventListener('keydown', (e) => {
                 handleKey(e.code, true);
-                
-                // Touche "E" ou "Entrée" : Raccourci pour ouvrir directement la page commerciale de l'oeuvre ciblée !
                 if ((e.code === 'KeyE' || e.code === 'Enter') && currentActiveTokenId !== null && controls.isLocked) {
                     window.open(`https://opensea.io/assets/polygon/${contractAddress}/${currentActiveTokenId}`, '_blank');
                 }
@@ -164,8 +157,10 @@
             if (isMobile) initMobileControls();
             scene.add(controls.getObject());
 
+            // Éclairage global
             scene.add(new THREE.AmbientLight(0xffecc4, 0.12)); 
 
+            // Matériaux du sol et des structures
             const textureLoader = new THREE.TextureLoader();
             const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
             floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(8, 8);
@@ -175,7 +170,11 @@
 
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a121a, roughness: 0.7 });
             const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 });
+            const marbleMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.1, metalness: 0.1 });
+            const velvetMat = new THREE.MeshStandardMaterial({ color: 0x3b0b11, roughness: 0.9 }); // Velours rouge capitonné
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x110a08, roughness: 0.4 });
 
+            // Construction des murs extérieurs du circuit
             function construireMurExposition(largeur, hauteur, x, y, z, rotationY) {
                 const wallGroup = new THREE.Group();
                 const wall = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur), wallMat);
@@ -195,13 +194,82 @@
             construireMurExposition(20, 8, 0, 4, -8, 0);           
             construireMurExposition(24, 8, 8, 4, 0, -Math.PI / 2); 
 
+
+            // ==========================================
+            // AJOUT 1 : LES PILIERS EN MARBRE DU LOUVRE
+            // ==========================================
+            function ajouterPilierMarbre(x, z) {
+                const pilierGroup = new THREE.Group();
+                
+                // Base carrée basse
+                const baseBasse = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.7), marbleMat);
+                baseBasse.position.y = 0.1; pilierGroup.add(baseBasse);
+                
+                // Base moulurée haute
+                const baseHaute = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.4, 16), marbleMat);
+                baseHaute.position.y = 0.4; pilierGroup.add(baseHaute);
+
+                // Colonne principale (Cylindre strié)
+                const colonne = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 7.0, 24), marbleMat);
+                colonne.position.y = 3.9; pilierGroup.add(colonne);
+
+                // Chapiteau sculpté (Haut du pilier)
+                const chapiteau = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.4, 0.65), marbleMat);
+                chapiteau.position.y = 7.5; pilierGroup.add(chapiteau);
+
+                pilierGroup.position.set(x, 0, z);
+                scene.add(pilierGroup);
+            }
+
+            // Placement symétrique des piliers pour encadrer le parcours
+            ajouterPilierMarbre(-4.5, -4);
+            ajouterPilierMarbre(4.5, -4);
+            ajouterPilierMarbre(-4.5, 2);
+            ajouterPilierMarbre(4.5, 2);
+
+
+            // ==========================================
+            // AJOUT 2 : LA BANQUETTE CENTRALE EN VELOURS
+            // ==========================================
+            const banquetteGroup = new THREE.Group();
+            
+            // Socle en bois noir
+            const socleBois = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.15, 1.4), woodMat);
+            socleBois.position.y = 0.075; banquetteGroup.add(socleBois);
+
+            // Pieds de la banquette (4 angles)
+            function creerPiedBanquette(px, pz) {
+                const pied = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 0.35, 8), woodMat);
+                pied.position.set(px, 0.175, pz);
+                banquetteGroup.add(pied);
+            }
+            creerPiedBanquette(-1.5, -0.6); creerPiedBanquette(1.5, -0.6);
+            creerPiedBanquette(-1.5, 0.6);  creerPiedBanquette(1.5, 0.6);
+
+            // Assise en Velours Rouge Napoléon (Boîte adoucie visuellement)
+            const assiseVelours = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.3, 1.3), velvetMat);
+            assiseVelours.position.y = 0.45; banquetteGroup.add(assiseVelours);
+
+            // Dossier central double face (Séparateur)
+            const dossierVelours = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.6, 0.3), velvetMat);
+            dossierVelours.position.set(0, 0.85, 0); banquetteGroup.add(dossierVelours);
+            
+            // Couronnement doré sur le dossier
+            const cimaiseDossier = new THREE.Mesh(new THREE.BoxGeometry(2.42, 0.04, 0.32), goldMat);
+            cimaiseDossier.position.set(0, 1.15, 0); banquetteGroup.add(cimaiseDossier);
+
+            banquetteGroup.position.set(0, 0, -1); // Placé fièrement au centre du circuit
+            scene.add(banquetteGroup);
+
+
+            // Rendu final constructeur
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
             window.addEventListener('resize', onWindowResize);
-            document.getElementById('loading-status').innerText = "Circuit prêt. Entrez !";
+            document.getElementById('loading-status').innerText = "Galerie impériale prête. Entrez !";
         }
 
         async function chargerCircuitBlockchain() {
@@ -272,6 +340,7 @@
             group.position.set(x, y, z);
             group.rotation.y = rotationY;
             
+            // Cadres dorés premium
             const goldFrameMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.95, roughness: 0.15 });
             const cadreArriere = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.15), goldFrameMat);
             group.add(cadreArriere);
@@ -279,7 +348,7 @@
             const moulureInterieure = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.2), new THREE.MeshStandardMaterial({ color: 0x1a0a05, roughness: 0.8 }));
             group.add(moulureInterieure);
 
-            const placeholderTex = new THREE.TextureLoader().load(metadata.img, (txt) => {
+            new THREE.TextureLoader().load(metadata.img, (txt) => {
                 const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshStandardMaterial({ map: txt, roughness: 0.3 }));
                 toile.position.z = 0.11;
                 toile.userData = metadata; 
@@ -287,6 +356,30 @@
                 artworks.push(toile);
             });
 
+            // ==========================================
+            // AJOUT 3 : CARTEL PHYSIQUE 3D SOUS LE CADRE
+            // ==========================================
+            const cartelPhysiqueGroup = new THREE.Group();
+            cartelPhysiqueGroup.position.set(0, -1.4, 0.05); // Centré juste sous le cadre
+            
+            // Support en bois noir biseauté
+            const supportCartel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 0.02), new THREE.MeshStandardMaterial({ color: 0x110a08, roughness: 0.5 }));
+            cartelPhysiqueGroup.add(supportCartel);
+            
+            // Plaque de papier ivoire explicative
+            const plaquePapier = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.2), new THREE.MeshStandardMaterial({ color: 0xfffcf0, roughness: 0.9 }));
+            plaquePapier.position.z = 0.012;
+            cartelPhysiqueGroup.add(plaquePapier);
+            
+            // Mini encadrement or autour de la plaque
+            const bordureOrCartel = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.22, 0.01), goldFrameMat);
+            bordureOrCartel.position.z = 0.005;
+            cartelPhysiqueGroup.add(bordureOrCartel);
+
+            group.add(cartelPhysiqueGroup);
+
+
+            // Projecteur directionnel individuel
             const museumSpot = new THREE.SpotLight(0xfff3da, 12, 10, Math.PI / 4.5, 0.5, 1);
             const dirX = Math.sin(rotationY) * 2.2;
             const dirZ = Math.cos(rotationY) * 2.2;
@@ -317,7 +410,6 @@
             setupBtn('btn-left', (val) => moveLeft = val);
             setupBtn('btn-right', (val) => moveRight = val);
 
-            // Gère le swipe de regard uniquement si on ne touche pas le cartel informatif
             window.addEventListener('touchstart', (e) => {
                 if (document.getElementById('hud-cartel').contains(e.target)) return;
                 if (e.touches[0].clientX < window.innerWidth / 2) return;
@@ -367,9 +459,16 @@
                 if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
             }
 
+            // Gestion des collisions physiques pour empêcher de traverser le canapé central ou les murs
             const pos = camera.position;
             if (pos.x > 7.2) pos.x = 7.2; if (pos.x < -7.2) pos.x = -7.2;
             if (pos.z > 22) pos.z = 22; if (pos.z < -7.2) pos.z = -7.2;
+            
+            // Collision canapé central
+            if (pos.z > -2.2 && pos.z < 0.2 && pos.x > -1.8 && pos.x < 1.8) {
+                if (moveForward) pos.z = -2.2;
+                if (moveBackward) pos.z = 0.2;
+            }
 
             raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycasterProximite.intersectObjects(artworks);
@@ -377,7 +476,7 @@
             const hud = document.getElementById('hud-cartel');
             if (intersects.length > 0 && intersects[0].distance < 3.8) {
                 const data = intersects[0].object.userData;
-                currentActiveTokenId = data.id; // Enregistre l'ID cible
+                currentActiveTokenId = data.id; 
 
                 document.getElementById('art-title').innerText = data.title;
                 document.getElementById('art-artist').innerText = data.artist;
@@ -398,7 +497,6 @@
 
                 hud.style.display = 'block';
             } else {
-                // Si on s'éloigne, on désactive le token actif
                 if(intersects.length === 0) currentActiveTokenId = null;
                 hud.style.display = 'none';
             }
