@@ -28,15 +28,27 @@
             top: 20px; right: 20px; left: 20px;
             background: rgba(20, 15, 15, 0.95); 
             border-left: 4px solid #d4af37;
-            color: white; padding: 15px; border-radius: 12px; display: none; z-index: 5; backdrop-filter: blur(10px);
+            color: white; padding: 18px; border-radius: 12px; display: none; z-index: 5; backdrop-filter: blur(10px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.8);
         }
         @media(min-width: 768px) { #hud-cartel { right: 30px; left: auto; width: 350px; top: 30px; } }
-        #hud-cartel h2 { margin: 0 0 6px 0; font-size: 1.2em; color: #f3e5ab; }
+        #hud-cartel h2 { margin: 0 0 4px 0; font-size: 1.2em; color: #f3e5ab; }
         #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #bbaea6; font-weight: normal; }
-        #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; margin: 0; }
+        #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; margin-bottom: 15px; }
         .mrc-tag { font-size: 0.65em; background: #d4af37; color: #111; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 6px; }
         
+        /* DESIGNS DES BOUTONS WEB3 INTERACTIFS */
+        .web3-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
+        .btn-web3 { 
+            display: block; text-align: center; text-decoration: none;
+            padding: 10px; font-size: 0.8em; font-weight: bold; border-radius: 6px;
+            transition: all 0.2s ease; cursor: pointer;
+        }
+        .btn-primary-w3 { background: #d4af37; color: #111; border: 1px solid #d4af37; }
+        .btn-primary-w3:hover { background: #f3e5ab; }
+        .btn-secondary-w3 { background: transparent; color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.5); }
+        .btn-secondary-w3:hover { background: rgba(212, 175, 55, 0.1); border-color: #d4af37; }
+
         #loading-status { color: #d4af37; font-size: 13px; margin-top: 15px; font-family: monospace; }
     </style>
     
@@ -72,6 +84,11 @@
         <h2 id="art-title">Chargement...</h2>
         <h3 id="art-artist">Propriétaire : --</h3>
         <p id="art-desc">Analyse cryptographique.</p>
+        
+        <div class="web3-actions">
+            <a id="web3-btn-marketplace" href="#" target="_blank" class="btn-web3 btn-primary-w3">FAIRE UNE OFFRE</a>
+            <a id="web3-btn-scan" href="#" target="_blank" class="btn-web3 btn-secondary-w3">VOIR SUR POLYGONSCAN</a>
+        </div>
     </div>
 
     <script type="module">
@@ -91,11 +108,10 @@
         const mrcABI = ["function uri(uint256 id) public view returns (string memory)"];
         const ipfsGateway = "https://cloudflare-ipfs.com/ipfs/";
 
-        // Configuration fixe du parcours d'exposition
         const configurationCircuit = [
-            { id: 1, x: -7.85, y: 2.5, z: -2, rotY: Math.PI / 2 },  // Gauche
-            { id: 3, x: 0,     y: 2.5, z: -7.85, rotY: 0 },          // Fond
-            { id: 4, x: 7.85,  y: 2.5, z: -2, rotY: -Math.PI / 2 }  // Droite
+            { id: 1, x: -7.85, y: 2.5, z: -2, rotY: Math.PI / 2 },  
+            { id: 3, x: 0,     y: 2.5, z: -7.85, rotY: 0 },          
+            { id: 4, x: 7.85,  y: 2.5, z: -2, rotY: -Math.PI / 2 }  
         ];
 
         init3D();
@@ -160,7 +176,6 @@
                 scene.add(wallGroup);
             }
 
-            // Génération des 3 grands murs du circuit
             construireMurExposition(24, 8, -8, 4, 0, Math.PI / 2);  
             construireMurExposition(20, 8, 0, 4, -8, 0);           
             construireMurExposition(24, 8, 8, 4, 0, -Math.PI / 2); 
@@ -181,7 +196,6 @@
                 { id: 4, title: "Passeport Royal MRC #4", img: "https://picsum.photos/id/1081/800/800", desc: "Certificat cryptographique d'authenticité." }
             ];
 
-            // 1. Génération IMMEDIATE de la structure physique (Pas de murs vides !)
             configurationCircuit.forEach((config, index) => {
                 accrocherTableauCircuit(config.x, config.y, config.z, config.rotY, {
                     id: config.id,
@@ -192,7 +206,6 @@
                 });
             });
 
-            // 2. Tentative asynchrone de mise à jour avec tes vraies données On-Chain
             try {
                 const provider = new ethers.JsonRpcProvider(monEndpointRPC);
                 const contract = new ethers.Contract(contractAddress, mrcABI, provider);
@@ -220,7 +233,6 @@
 
                     if (!finalTextureUrl) continue;
 
-                    // Recherche du tableau déjà accroché pour remplacer son image et ses textes à la volée !
                     const meshToUpdate = artworks.find(mesh => mesh.userData.id === config.id);
                     if (meshToUpdate) {
                         new THREE.TextureLoader().load(finalTextureUrl, (newTxt) => {
@@ -228,6 +240,7 @@
                             meshToUpdate.material.needsUpdate = true;
                         });
                         meshToUpdate.userData = {
+                            id: config.id,
                             title: metadata.name || `Passeport MRC #${config.id}`,
                             artist: metadata.attributes?.find(a => a.trait_type === "Type" || a.trait_type === "Artist")?.value || `ID : #${config.id}`,
                             desc: metadata.description || "Actif certifié conforme par signature On-Chain."
@@ -235,7 +248,7 @@
                     }
                 }
             } catch (error) {
-                console.log("Maintien des structures visuelles d'appui.");
+                console.log("Maintien des structures visuelles.");
             }
         }
 
@@ -254,7 +267,7 @@
             const placeholderTex = new THREE.TextureLoader().load(metadata.img, (txt) => {
                 const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshStandardMaterial({ map: txt, roughness: 0.3 }));
                 toile.position.z = 0.11;
-                toile.userData = metadata; // Contient l'ID pour pouvoir être mis à jour
+                toile.userData = metadata; 
                 group.add(toile);
                 artworks.push(toile);
             });
@@ -349,6 +362,17 @@
                 document.getElementById('art-title').innerText = data.title;
                 document.getElementById('art-artist').innerText = data.artist;
                 document.getElementById('art-desc').innerText = data.desc; 
+
+                // --- INJECTION DYNAMIQUE DES LIENS WEB3 DU TOKEN ENGAGÉ ---
+                const btnScan = document.getElementById('web3-btn-scan');
+                const btnMarket = document.getElementById('web3-btn-marketplace');
+                
+                // Lien direct Polygonscan ciblé sur le Token ID exact
+                btnScan.href = `https://polygonscan.com/token/${contractAddress}?a=${data.id}`;
+                
+                // Lien commercial OpenSea ciblé sur le Token ID exact
+                btnMarket.href = `https://opensea.io/assets/polygon/${contractAddress}/${data.id}`;
+
                 hud.style.display = 'block';
             } else {
                 hud.style.display = 'none';
