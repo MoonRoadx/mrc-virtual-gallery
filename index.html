@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Le Louvre Virtuel - Expérience MRC Premium</title>
+    <title>Le Louvre Virtuel - Complexe Muséal MRC</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #030305; user-select: none; -webkit-user-select: none; }
         canvas { display: block; }
@@ -67,9 +67,9 @@
 
     <div id="blocker">
         <div id="instructions">
-            ENTRER DANS LE GRAND SALON MRC<br>
+            ENTRER DANS LE COMPLEXE HISTORIQUE<br>
             <span style="font-size: 12px; color:#d4af37; display:block; margin-top:10px;">PC : Touches Z, Q, S, D + Souris.<br>Mobile : Flèches à gauche + Glisser à droite.</span>
-            <div id="loading-status">Modélisation du mobilier royal...</div>
+            <div id="loading-status">Érection des ailes du musée...</div>
         </div>
     </div>
 
@@ -112,10 +112,11 @@
         const mrcABI = ["function uri(uint256 id) public view returns (string memory)"];
         const ipfsGateway = "https://cloudflare-ipfs.com/ipfs/";
 
+        // POSITIONNEMENT MULTI-SALLES (Le vrai circuit)
         const configurationCircuit = [
-            { id: 1, x: -7.85, y: 2.5, z: -2, rotY: Math.PI / 2 },  
-            { id: 3, x: 0,     y: 2.5, z: -7.85, rotY: 0 },          
-            { id: 4, x: 7.85,  y: 2.5, z: -2, rotY: -Math.PI / 2 }  
+            { id: 1, x: -11.9, y: 2.5, z: -4,    rotY: Math.PI / 2 },  // Salle de Gauche
+            { id: 3, x: 0,     y: 2.5, z: -11.9, rotY: 0 },            // Salle Centrale du Fond
+            { id: 4, x: 11.9,  y: 2.5, z: -4,    rotY: -Math.PI / 2 }  // Salle de Droite
         ];
 
         init3D();
@@ -125,7 +126,7 @@
         function init3D() {
             isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.7, 5); 
+            camera.position.set(0, 1.7, 4); // Position de départ
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0706); 
@@ -157,25 +158,25 @@
             if (isMobile) initMobileControls();
             scene.add(controls.getObject());
 
-            // Éclairage global
-            scene.add(new THREE.AmbientLight(0xffecc4, 0.12)); 
+            // Éclairages
+            scene.add(new THREE.AmbientLight(0xffecc4, 0.14)); 
 
-            // Matériaux du sol et des structures
+            // Matériaux d'époque
             const textureLoader = new THREE.TextureLoader();
             const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
-            floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(8, 8);
+            floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(12, 12);
 
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ map: floorTex, color: 0x5a3d28, roughness: 0.18 }));
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map: floorTex, color: 0x5a3d28, roughness: 0.18 }));
             floor.rotation.x = -Math.PI / 2; scene.add(floor);
 
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a121a, roughness: 0.7 });
             const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 });
-            const marbleMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.1, metalness: 0.1 });
-            const velvetMat = new THREE.MeshStandardMaterial({ color: 0x3b0b11, roughness: 0.9 }); // Velours rouge capitonné
+            const marbleMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.08, metalness: 0.1 });
+            const velvetMat = new THREE.MeshStandardMaterial({ color: 0x3b0b11, roughness: 0.9 }); 
             const woodMat = new THREE.MeshStandardMaterial({ color: 0x110a08, roughness: 0.4 });
 
-            // Construction des murs extérieurs du circuit
-            function construireMurExposition(largeur, hauteur, x, y, z, rotationY) {
+            // CONSTRUCTEUR DE CLOISONNEMENT INDIVIDUEL (Murs intérieurs et extérieurs)
+            function monterMur(largeur, hauteur, x, y, z, rotationY) {
                 const wallGroup = new THREE.Group();
                 const wall = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur), wallMat);
                 wallGroup.add(wall);
@@ -190,93 +191,63 @@
                 scene.add(wallGroup);
             }
 
-            construireMurExposition(24, 8, -8, 4, 0, Math.PI / 2);  
-            construireMurExposition(20, 8, 0, 4, -8, 0);           
-            construireMurExposition(24, 8, 8, 4, 0, -Math.PI / 2); 
+            // --- GÉOMÉTRIE DU COMPLEXE MULTI-SALLES (LE VRAI LABYRINTHE) ---
+            // Murs extérieurs des ailes
+            monterMur(24, 8, -12, 4, -4, Math.PI / 2);   // Limite Extérieure Gauche
+            monterMur(24, 8, 12, 4, -4, -Math.PI / 2);  // Limite Extérieure Droite
+            monterMur(12, 8, 0, 4, -12, 0);             // Grand fond central
+            monterMur(24, 8, 0, 4, 6, Math.PI);         // Grand mur arrière (Entrée)
 
+            // Cloisons de séparation intérieures (Créent les couloirs et ouvertures)
+            monterMur(8, 8, -4, 4, -2, 0);               // Séparateur gauche face
+            monterMur(8, 8, 4, 4, -2, 0);                // Séparateur droit face
+            monterMur(8, 8, -4, 4, -8, Math.PI / 2);     // Couloir gauche latéral
+            monterMur(8, 8, 4, 4, -8, -Math.PI / 2);    // Couloir droit latéral
 
-            // ==========================================
-            // AJOUT 1 : LES PILIERS EN MARBRE DU LOUVRE
-            // ==========================================
-            function ajouterPilierMarbre(x, z) {
+            // --- AJOUT DES COLONNES DE MARBRE AUX INTERSECTIONS ---
+            function implanterPilier(x, z) {
                 const pilierGroup = new THREE.Group();
-                
-                // Base carrée basse
-                const baseBasse = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.7), marbleMat);
+                const baseBasse = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.6), marbleMat);
                 baseBasse.position.y = 0.1; pilierGroup.add(baseBasse);
-                
-                // Base moulurée haute
-                const baseHaute = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.4, 16), marbleMat);
-                baseHaute.position.y = 0.4; pilierGroup.add(baseHaute);
-
-                // Colonne principale (Cylindre strié)
-                const colonne = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 7.0, 24), marbleMat);
-                colonne.position.y = 3.9; pilierGroup.add(colonne);
-
-                // Chapiteau sculpté (Haut du pilier)
-                const chapiteau = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.4, 0.65), marbleMat);
-                chapiteau.position.y = 7.5; pilierGroup.add(chapiteau);
-
-                pilierGroup.position.set(x, 0, z);
-                scene.add(pilierGroup);
+                const colonne = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 7.6, 16), marbleMat);
+                colonne.position.y = 4; pilierGroup.add(colonne);
+                const chapiteau = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.55), marbleMat);
+                chapiteau.position.y = 7.8; pilierGroup.add(chapiteau);
+                pilierGroup.position.set(x, 0, z); scene.add(pilierGroup);
             }
 
-            // Placement symétrique des piliers pour encadrer le parcours
-            ajouterPilierMarbre(-4.5, -4);
-            ajouterPilierMarbre(4.5, -4);
-            ajouterPilierMarbre(-4.5, 2);
-            ajouterPilierMarbre(4.5, 2);
+            // Piliers disposés aux entrées de chaque nouvelle aile
+            implanterPilier(-3.8, -1.8); implanterPilier(3.8, -1.8);
+            implanterPilier(-3.8, -7.8); implanterPilier(3.8, -7.8);
 
-
-            // ==========================================
-            // AJOUT 2 : LA BANQUETTE CENTRALE EN VELOURS
-            // ==========================================
+            // --- BANQUETTE CENTRALE MAJESTUEUSE DANS LA NEF ---
             const banquetteGroup = new THREE.Group();
-            
-            // Socle en bois noir
-            const socleBois = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.15, 1.4), woodMat);
+            const socleBois = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.15, 1.2), woodMat);
             socleBois.position.y = 0.075; banquetteGroup.add(socleBois);
-
-            // Pieds de la banquette (4 angles)
-            function creerPiedBanquette(px, pz) {
-                const pied = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 0.35, 8), woodMat);
-                pied.position.set(px, 0.175, pz);
-                banquetteGroup.add(pied);
-            }
-            creerPiedBanquette(-1.5, -0.6); creerPiedBanquette(1.5, -0.6);
-            creerPiedBanquette(-1.5, 0.6);  creerPiedBanquette(1.5, 0.6);
-
-            // Assise en Velours Rouge Napoléon (Boîte adoucie visuellement)
-            const assiseVelours = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.3, 1.3), velvetMat);
+            const assiseVelours = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.3, 1.1), velvetMat);
             assiseVelours.position.y = 0.45; banquetteGroup.add(assiseVelours);
-
-            // Dossier central double face (Séparateur)
-            const dossierVelours = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.6, 0.3), velvetMat);
+            const dossierVelours = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.6, 0.25), velvetMat);
             dossierVelours.position.set(0, 0.85, 0); banquetteGroup.add(dossierVelours);
-            
-            // Couronnement doré sur le dossier
-            const cimaiseDossier = new THREE.Mesh(new THREE.BoxGeometry(2.42, 0.04, 0.32), goldMat);
+            const cimaiseDossier = new THREE.Mesh(new THREE.BoxGeometry(2.22, 0.04, 0.27), goldMat);
             cimaiseDossier.position.set(0, 1.15, 0); banquetteGroup.add(cimaiseDossier);
-
-            banquetteGroup.position.set(0, 0, -1); // Placé fièrement au centre du circuit
+            
+            banquetteGroup.position.set(0, 0, 1.5); // Canapé d'attente à l'entrée
             scene.add(banquetteGroup);
 
-
-            // Rendu final constructeur
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
             window.addEventListener('resize', onWindowResize);
-            document.getElementById('loading-status').innerText = "Galerie impériale prête. Entrez !";
+            document.getElementById('loading-status').innerText = "Musée multi-salles construit !";
         }
 
         async function chargerCircuitBlockchain() {
             const fallbackData = [
-                { id: 1, title: "Passeport Royal MRC #1", img: "https://picsum.photos/id/1043/800/800", desc: "Passeport de propriété numérique souverain configuré via le protocole MRC." },
-                { id: 3, title: "Passeport Royal MRC #3", img: "https://picsum.photos/id/1062/800/800", desc: "Lien On-Chain immuable enregistré sur Polygon Mainnet." },
-                { id: 4, title: "Passeport Royal MRC #4", img: "https://picsum.photos/id/1081/800/800", desc: "Certificat cryptographique d'authenticité." }
+                { id: 1, title: "Passeport Royal MRC #1", img: "https://picsum.photos/id/1043/800/800", desc: "Exposé dans l'Aile Ouest. Passeport de propriété numérique souverain configuré via le protocole MRC." },
+                { id: 3, title: "Passeport Royal MRC #3", img: "https://picsum.photos/id/1062/800/800", desc: "Exposé dans la Grande Rotonde. Lien On-Chain immuable enregistré sur Polygon Mainnet." },
+                { id: 4, title: "Passeport Royal MRC #4", img: "https://picsum.photos/id/1081/800/800", desc: "Exposé dans l'Aile Est. Certificat cryptographique d'authenticité." }
             ];
 
             configurationCircuit.forEach((config, index) => {
@@ -340,7 +311,6 @@
             group.position.set(x, y, z);
             group.rotation.y = rotationY;
             
-            // Cadres dorés premium
             const goldFrameMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.95, roughness: 0.15 });
             const cadreArriere = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.15), goldFrameMat);
             group.add(cadreArriere);
@@ -356,30 +326,16 @@
                 artworks.push(toile);
             });
 
-            // ==========================================
-            // AJOUT 3 : CARTEL PHYSIQUE 3D SOUS LE CADRE
-            // ==========================================
+            // Cartel 3D au mur sous le cadre
             const cartelPhysiqueGroup = new THREE.Group();
-            cartelPhysiqueGroup.position.set(0, -1.4, 0.05); // Centré juste sous le cadre
-            
-            // Support en bois noir biseauté
+            cartelPhysiqueGroup.position.set(0, -1.4, 0.05);
             const supportCartel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 0.02), new THREE.MeshStandardMaterial({ color: 0x110a08, roughness: 0.5 }));
             cartelPhysiqueGroup.add(supportCartel);
-            
-            // Plaque de papier ivoire explicative
             const plaquePapier = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.2), new THREE.MeshStandardMaterial({ color: 0xfffcf0, roughness: 0.9 }));
-            plaquePapier.position.z = 0.012;
-            cartelPhysiqueGroup.add(plaquePapier);
-            
-            // Mini encadrement or autour de la plaque
-            const bordureOrCartel = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.22, 0.01), goldFrameMat);
-            bordureOrCartel.position.z = 0.005;
-            cartelPhysiqueGroup.add(bordureOrCartel);
-
+            plaquePapier.position.z = 0.012; cartelPhysiqueGroup.add(plaquePapier);
             group.add(cartelPhysiqueGroup);
 
-
-            // Projecteur directionnel individuel
+            // Spot lumineux ciblé
             const museumSpot = new THREE.SpotLight(0xfff3da, 12, 10, Math.PI / 4.5, 0.5, 1);
             const dirX = Math.sin(rotationY) * 2.2;
             const dirZ = Math.cos(rotationY) * 2.2;
@@ -459,15 +415,28 @@
                 if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
             }
 
-            // Gestion des collisions physiques pour empêcher de traverser le canapé central ou les murs
+            // --- SYSTEM DE MURS DE COLLISIONS POUR LE MULTI-SALLES ---
             const pos = camera.position;
-            if (pos.x > 7.2) pos.x = 7.2; if (pos.x < -7.2) pos.x = -7.2;
-            if (pos.z > 22) pos.z = 22; if (pos.z < -7.2) pos.z = -7.2;
             
-            // Collision canapé central
-            if (pos.z > -2.2 && pos.z < 0.2 && pos.x > -1.8 && pos.x < 1.8) {
-                if (moveForward) pos.z = -2.2;
-                if (moveBackward) pos.z = 0.2;
+            // Frontières extérieures globales du musée
+            if (pos.x > 11.2) pos.x = 11.2; if (pos.x < -11.2) pos.x = -11.2;
+            if (pos.z > 5.2)  pos.z = 5.2;  if (pos.z < -11.2) pos.z = -11.2;
+            
+            // Collision canapé entrée
+            if (pos.z > 0.4 && pos.z < 2.6 && pos.x > -1.6 && pos.x < 1.6) {
+                if (moveForward) pos.z = 0.4; if (moveBackward) pos.z = 2.6;
+            }
+
+            // Murs de séparation intérieurs (Gestion intelligente du passage par les portes)
+            // Zone des cloisons à Z = -2 (Laisse une porte ouverte au centre entre X = -4 et X = 4)
+            if (pos.z < -1.7 && pos.z > -2.3) {
+                if (pos.x < -3.8) pos.z = -1.7; // Bloqué par la cloison gauche
+                if (pos.x > 3.8) pos.z = -1.7;  // Bloqué par la cloison droite
+            }
+            // Zone des couloirs latéraux à X = -4 et X = 4 (Laisse l'accès ouvert vers le fond)
+            if (pos.z < -2 && pos.z > -8) {
+                if (pos.x < -3.7 && pos.x > -4.3) pos.x = -3.7; // Mur latéral gauche
+                if (pos.x > 3.7 && pos.x < 4.3) pos.x = 3.7;   // Mur latéral droit
             }
 
             raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -490,7 +459,7 @@
                 btnMarket.href = `https://opensea.io/assets/polygon/${contractAddress}/${data.id}`;
 
                 if(!isMobile) {
-                    hintText.innerHTML = `💡 Astuce PC : Appuyez sur [E] pour aller sur OpenSea<br>ou [ÉCHAP] pour libérer la souris et cliquer.`;
+                    hintText.innerHTML = `💡 Astuce PC : Appuyez sur [E] pour aller sur OpenSea<br>ou [ÉCHAP] pour libérer la souris.`;
                 } else {
                     hintText.innerHTML = `Toucher un bouton pour exécuter l'action.`;
                 }
