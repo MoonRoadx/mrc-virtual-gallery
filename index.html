@@ -85,8 +85,15 @@
         const artworks = []; 
         const raycasterProximite = new THREE.Raycaster();
 
+        // --- CONFIGURATION PROTOCOLE MRC (ERC-1155) ---
         const contractAddress = "0x5De79f385FFe00DD5951AaB522082B6F76a084ac"; 
         const tokenIdsToExpose = [1, 3, 4]; 
+        
+        // Nouvelle passerelle dédiée et privée via ton application Alchemy
+        const monEndpointRPC = "https://polygon-mainnet.g.alchemy.com/v2/LhJWDQu5B7mVyn18mVfI0"; 
+
+        // ABI adapté au standard ERC-1155 (la fonction est uri et non tokenURI)
+        const mrcABI = ["function uri(uint256 id) public view returns (string memory)"];
         const ipfsGateway = "https://cloudflare-ipfs.com/ipfs/";
 
         init3D();
@@ -100,7 +107,7 @@
             camera.position.set(0, 1.7, 7); 
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0706); // Ambiance feutrée de nuit
+            scene.background = new THREE.Color(0x0a0706); 
             scene.fog = new THREE.FogExp2(0x0a0706, 0.05);
 
             controls = new PointerLockControls(camera, document.body);
@@ -121,54 +128,29 @@
             }
             scene.add(controls.getObject());
 
-            // --- ÉCLAIRAGE CHALEUREUX (Style Lustres du Louvre) ---
-            scene.add(new THREE.AmbientLight(0xffecc4, 0.15)); // Ambiance légèrement dorée/bougie
-
+            // Éclairage
+            scene.add(new THREE.AmbientLight(0xffecc4, 0.15)); 
             const ceilingLight = new THREE.DirectionalLight(0xfff4df, 0.4);
             ceilingLight.position.set(0, 12, 2);
             scene.add(ceilingLight);
 
-            // --- CRÉATION DE L'ENVIRONNEMENT TEXTURÉ ---
+            // Décors du Louvre (Sol parquet et mur bordeaux)
             const textureLoader = new THREE.TextureLoader();
-
-            // 1. Sol : Parquet de Versailles (chargé depuis une texture publique stable)
             const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
-            floorTex.wrapS = THREE.RepeatWrapping;
-            floorTex.wrapT = THREE.RepeatWrapping;
-            floorTex.repeat.set(6, 6);
+            floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(6, 6);
 
-            const floorMat = new THREE.MeshStandardMaterial({ 
-                map: floorTex, 
-                color: 0x5a3d28, // Teinte bois précieux chaud
-                roughness: 0.18,  // Donne l'effet "Béton ciré / Parquet verni lustré"
-                metalness: 0.1
-            });
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), floorMat);
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ map: floorTex, color: 0x5a3d28, roughness: 0.18 }));
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            // 2. Mur : Boiseries Rouge Opéra / Velours du Louvre
-            const wallMat = new THREE.MeshStandardMaterial({ 
-                color: 0x4a121a, // Rouge bordeaux royal profond
-                roughness: 0.7,
-            });
-            
-            // Grand Mur du fond
-            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(60, 9), wallMat);
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(60, 9), new THREE.MeshStandardMaterial({ color: 0x4a121a, roughness: 0.7 }));
             backWall.position.set(0, 4.5, -6);
             scene.add(backWall);
 
-            // Cimaise / Dorure horizontale sur le mur (Ligne en or qui traverse le mur)
-            const goldLine = new THREE.Mesh(
-                new THREE.BoxGeometry(60, 0.1, 0.05),
-                new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 })
-            );
-            goldLine.position.set(0, 1.2, -5.95); // Juste au niveau des yeux en marchant
-            scene.add(goldLine);
-
-            const goldLineTop = goldLine.clone();
-            goldLineTop.position.y = 5.5;
-            scene.add(goldLineTop);
+            // Frises dorées
+            const goldLine = new THREE.Mesh(new THREE.BoxGeometry(60, 0.1, 0.05), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 }));
+            goldLine.position.set(0, 1.2, -5.95); scene.add(goldLine);
+            const goldLineTop = goldLine.clone(); goldLineTop.position.y = 5.5; scene.add(goldLineTop);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -182,33 +164,46 @@
 
         async function chargerDonneesPolygon() {
             let positionX = -5;
-            const mrcABI = ["function tokenURI(uint256 tokenId) public view returns (string memory)"];
 
             try {
-                const provider = new ethers.JsonRpcProvider("https://polygon-rpc.com");
+                // Utilisation de ton point d'accès Alchemy privé sécurisé
+                const provider = new ethers.JsonRpcProvider(monEndpointRPC);
                 const contract = new ethers.Contract(contractAddress, mrcABI, provider);
 
                 for (let i = 0; i < tokenIdsToExpose.length; i++) {
                     const tokenId = tokenIdsToExpose[i];
-                    let tokenURI = await contract.tokenURI(tokenId);
-                    if (!tokenURI) throw new Error();
+                    
+                    // Lecture de la fonction standard ERC-1155 'uri'
+                    let tokenURI = await contract.uri(tokenId);
+                    if (!tokenURI) throw new Error("URI manquante");
 
-                    let jsonURL = tokenURI.replace("ipfs://", ipfsGateway);
+                    // Remplacement de la variable {id} au format attendu (standard ERC-1155 en hexadécimal sur 64 caractères si présent)
+                    let targetIDHex = tokenId.toString(16).padStart(64, '0');
+                    let jsonURL = tokenURI.replace("{id}", targetIDHex).replace("ipfs://", ipfsGateway);
+
+                    // Forcer la passerelle IPFS si le lien brut est incomplet
+                    if (!jsonURL.startsWith("http")) {
+                        jsonURL = ipfsGateway + jsonURL;
+                    }
+
                     const response = await fetch(jsonURL);
                     const metadata = await response.json();
-                    let imgUrl = metadata.image ? metadata.image.replace("ipfs://", ipfsGateway) : "https://picsum.photos/800/800";
+                    
+                    // Extraction flexible des images (compatible avec les différentes clés de métadonnées)
+                    let imgUrl = metadata.image || metadata.image_url || metadata.file || "https://picsum.photos/800/800";
+                    imgUrl = imgUrl.replace("ipfs://", ipfsGateway);
 
                     accrocherTableauClassique(positionX, 2.5, -5.9, {
-                        title: metadata.name || `Passeport #${tokenId}`,
-                        artist: `ID Officiel : #${tokenId}`,
-                        desc: metadata.description || "Authentifié via protocole MRC.",
-                        hash: `Contrat: ${contractAddress.substring(0,6)}...`,
+                        title: metadata.name || `Passeport MRC #${tokenId}`,
+                        artist: "Statut : Actif & Certifié",
+                        desc: metadata.description || "Passeport de propriété numérique souverain crypté sur la blockchain Polygon Mainnet.",
+                        hash: `Contrat: ${contractAddress.substring(0,8)}... | ID: ${tokenId}`,
                         img: imgUrl
                     });
                     positionX += 5;
                 }
             } catch (error) {
-                // Mode secours automatique avec des images classiques haut de gamme
+                console.warn("Lancement des structures visuelles d'appui :", error);
                 const fallbacks = [
                     { title: "Passeport Royal MRC #1", img: "https://picsum.photos/id/1043/800/800" },
                     { title: "Passeport Royal MRC #3", img: "https://picsum.photos/id/1062/800/800" },
@@ -218,9 +213,9 @@
                 fallbacks.forEach((data, index) => {
                     accrocherTableauClassique(positionX, 2.5, -5.9, {
                         title: data.title,
-                        artist: "Statut : Actif & Certifié",
-                        desc: "Passeport de propriété numérique souverain crypté sur la blockchain Polygon Mainnet.",
-                        hash: `Contrat: 0x5De7... | Token: ${tokenIdsToExpose[index]}`,
+                        artist: "Statut : Certifié Conforme",
+                        desc: "Document de propriété numérique souverain configuré via le protocole MRC.",
+                        hash: `Contrat Ext: 0x5De7... | Token: ${tokenIdsToExpose[index]}`,
                         img: data.img
                     });
                     positionX += 5;
@@ -228,48 +223,32 @@
             }
         }
 
-        // --- FABRICATION DU CADRE DORÉ DU LOUVRE ---
         function accrocherTableauClassique(x, y, z, metadata) {
             const group = new THREE.Group();
             group.position.set(x, y, z);
             
-            // 1. Grand Cadre Or Sculpté (Metalness maximum, Roughness minimum pour briller)
-            const goldFrameMat = new THREE.MeshStandardMaterial({ 
-                color: 0xd4af37, // Couleur Or pur
-                metalness: 0.95, 
-                roughness: 0.15 
-            });
-
+            const goldFrameMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.95, roughness: 0.15 });
             const cadreArriere = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.15), goldFrameMat);
             group.add(cadreArriere);
 
-            // Moulure intérieure (Bordure biseautée typique des musées)
             const moulureInterieure = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.2), new THREE.MeshStandardMaterial({ color: 0x1a0a05, roughness: 0.8 }));
             group.add(moulureInterieure);
 
-            // 2. La Toile d'exposition
             new THREE.TextureLoader().load(metadata.img, (txt) => {
-                const toile = new THREE.Mesh(
-                    new THREE.PlaneGeometry(2.0, 2.0), 
-                    new THREE.MeshStandardMaterial({ map: txt, roughness: 0.4 })
-                );
-                toile.position.z = 0.11; // Avancée pour sortir du cadre
+                const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshStandardMaterial({ map: txt, roughness: 0.4 }));
+                toile.position.z = 0.11;
                 toile.userData = metadata;
                 group.add(toile);
                 artworks.push(toile);
             });
 
-            // 3. Éclairage individualisé : Spot chaud directionnel braqué sur la dorure
             const museumSpot = new THREE.SpotLight(0xfff3da, 10, 12, Math.PI / 4.5, 0.5, 1);
-            museumSpot.position.set(x, 6, z + 2.5); // Vient d'en haut et éclaire vers le bas
+            museumSpot.position.set(x, 6, z + 2.5);
             museumSpot.target = group;
-            scene.add(museumSpot);
-            scene.add(museumSpot.target);
-
+            scene.add(museumSpot); scene.add(museumSpot.target);
             scene.add(group);
         }
 
-        // --- CODE LOGIQUE FLUIDITÉ MOBILE (Vérifié intact) ---
         function handleKey(code, isDown) {
             switch (code) {
                 case 'KeyW': case 'ArrowUp': moveForward = isDown; break;
@@ -325,8 +304,7 @@
             if (isMobile) {
                 const camDirection = new THREE.Vector3();
                 camera.getWorldDirection(camDirection);
-                camDirection.y = 0; 
-                camDirection.normalize();
+                camDirection.y = 0; camDirection.normalize();
                 const camRight = new THREE.Vector3();
                 camRight.crossVectors(camera.up, camDirection).normalize();
 
@@ -336,12 +314,10 @@
                 if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
             }
 
-            // Limites de la pièce
             const pos = camera.position;
             if (pos.x > 25) pos.x = 25; if (pos.x < -25) pos.x = -25;
             if (pos.z > 25) pos.z = 25; if (pos.z < -4) pos.z = -4;
 
-            // Détecteur de proximité
             raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycasterProximite.intersectObjects(artworks);
 
