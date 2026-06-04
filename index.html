@@ -5,33 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Visite Mobile - Musée MRC Protocol</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #050508; user-select: none; -webkit-user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #060609; user-select: none; -webkit-user-select: none; }
         canvas { display: block; }
 
         #blocker {
             position: absolute; width: 100%; height: 100%;
-            background-color: rgba(5, 5, 8, 0.85);
+            background-color: rgba(6, 6, 9, 0.9);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: #fff; text-align: center; cursor: pointer; z-index: 10;
         }
-        #instructions { font-size: 18px; border: 2px solid #7c3aed; padding: 20px; border-radius: 12px; background: rgba(124, 58, 237, 0.15); box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+        #instructions { font-size: 18px; border: 2px solid #7c3aed; padding: 20px; border-radius: 12px; background: rgba(124, 58, 237, 0.15); }
         
-        #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; z-index: 20; display: none; }
+        /* Pavé directionnel mobile tactile */
+        #pad-zone {
+            position: absolute; bottom: 30px; left: 30px;
+            width: 140px; height: 140px;
+            z-index: 20; display: none;
+        }
+        .btn-dir {
+            position: absolute; background: rgba(124, 58, 237, 0.25);
+            border: 2px solid rgba(167, 139, 250, 0.5); border-radius: 8px;
+            color: white; font-weight: bold; text-align: center; line-height: 40px;
+            width: 44px; height: 44px; font-size: 18px;
+            active { background: rgba(124, 58, 237, 0.6); }
+        }
+        #btn-up { top: 0; left: 48px; }
+        #btn-left { top: 48px; left: 0; }
+        #btn-right { top: 48px; right: 0; }
+        #btn-down { bottom: 0; left: 48px; }
 
         #hud-cartel {
             position: absolute; bottom: 20px; right: 20px; left: 20px;
             background: rgba(15, 15, 20, 0.95); border-top: 4px solid #7c3aed;
-            color: white; padding: 20px; border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
-            display: none; z-index: 5; backdrop-filter: blur(10px);
+            color: white; padding: 20px; border-radius: 12px; display: none; z-index: 5;
         }
         @media(min-width: 768px) {
             #hud-cartel { top: 30px; right: 30px; left: auto; bottom: auto; width: 340px; border-top: none; border-left: 4px solid #7c3aed; }
         }
         #hud-cartel h2 { margin: 0 0 6px 0; font-size: 1.2em; color: #a78bfa; }
-        #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #9ca3af; font-weight: 400; }
-        #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; margin-bottom: 10px; }
-        .mrc-tag { font-size: 0.7em; background: #7c3aed; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #9ca3af; }
+        #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; }
+        .mrc-tag { font-size: 0.7em; background: #7c3aed; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
     </style>
     <script type="importmap">
         {
@@ -41,18 +55,22 @@
             }
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
 </head>
 <body>
 
     <div id="blocker">
         <div id="instructions">
             ENTRER DANS LE VERNISSAGE MRC<br>
-            <span style="font-size: 12px; color:#a78bfa; display:block; margin-top:10px;">Joystick à gauche pour marcher.<br>Glisser à droite pour orienter le regard.</span>
+            <span style="font-size: 12px; color:#a78bfa; display:block; margin-top:10px;">Touches à gauche pour marcher.<br>Glisser l'écran à droite pour regarder autour.</span>
         </div>
     </div>
 
-    <div id="joystick-zone"></div>
+    <div id="pad-zone">
+        <div id="btn-up" class="btn-dir">▲</div>
+        <div id="btn-left" class="btn-dir">◀</div>
+        <div id="btn-right" class="btn-dir">▶</div>
+        <div id="btn-down" class="btn-dir">▼</div>
+    </div>
 
     <div id="hud-cartel">
         <span class="mrc-tag">Protocole MRC Authentifié</span>
@@ -69,10 +87,6 @@
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         
-        let prevTime = performance.now();
-        const velocity = new THREE.Vector3();
-        const direction = new THREE.Vector3();
-
         let isMobile = false;
         let touchStartPoint = { x: 0, y: 0 };
         const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -91,63 +105,56 @@
         function init() {
             isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.7, 6); // Position de départ reculée pour mieux voir
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.7, 5); 
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x060609);
-            scene.fog = new THREE.FogExp2(0x060609, 0.07);
+            scene.fog = new THREE.FogExp2(0x060609, 0.08);
 
             controls = new PointerLockControls(camera, document.body);
             const blocker = document.getElementById('blocker');
             
             if (!isMobile) {
                 blocker.addEventListener('click', () => controls.lock());
-                controls.addEventListener('lock', () => blocker.style.style.display = 'none');
+                controls.addEventListener('lock', () => blocker.style.display = 'none');
                 controls.addEventListener('unlock', () => blocker.style.display = 'flex');
                 document.addEventListener('keydown', (e) => handleKey(e.code, true));
                 document.addEventListener('keyup', (e) => handleKey(e.code, false));
             } else {
                 blocker.addEventListener('touchstart', () => {
                     blocker.style.display = 'none';
-                    document.getElementById('joystick-zone').style.display = 'block';
+                    document.getElementById('pad-zone').style.display = 'block';
                 });
                 initMobileControls();
             }
 
             scene.add(controls.getObject());
 
-            // --- ÉCLAIRAGE ARCHITECTURAL ---
-            // Lumière ambiante très douce pour boucher les noirs profonds
-            scene.add(new THREE.AmbientLight(0xffffff, 0.08));
-
-            // Lumière douce venant du plafond pour dessiner le sol
-            const topLight = new THREE.DirectionalLight(0xa78bfa, 0.2); // Teinte violette Polygon
+            // --- ÉCLAIRAGE ---
+            scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+            const topLight = new THREE.DirectionalLight(0xa78bfa, 0.3);
             topLight.position.set(0, 10, 0);
             scene.add(topLight);
 
-            // --- ARCHITECTURE DE LA SALLE ---
-            // Sol Style Béton Sombre / Galerie de nuit
-            const floorGeo = new THREE.PlaneGeometry(40, 40);
-            const floorMat = new THREE.MeshStandardMaterial({ 
-                color: 0x121216, 
-                roughness: 0.15, 
-                metalness: 0.5 
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
+            // --- DECOR ---
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(40, 40), 
+                new THREE.MeshStandardMaterial({ color: 0x121216, roughness: 0.2, metalness: 0.3 })
+            );
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            // Grand Mur d'exposition en briques ou béton sombre
-            const wallGeo = new THREE.PlaneGeometry(40, 6);
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 0.8 });
-            const backWall = new THREE.Mesh(wallGeo, wallMat);
-            backWall.position.set(0, 3, -8);
+            const backWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(40, 6), 
+                new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 0.8 })
+            );
+            backWall.position.set(0, 3, -6);
             scene.add(backWall);
 
-            // --- ACCROCHAGE & LOOK DESŒUVRES ---
-            accrocherTableau(-3.5, 2.3, -7.9, mrcDatabase[0]);
-            accrocherTableau(3.5, 2.3, -7.9, mrcDatabase[1]);
+            // Accrochage
+            accrocherTableau(-3, 2.3, -5.9, mrcDatabase[0]);
+            accrocherTableau(3, 2.3, -5.9, mrcDatabase[1]);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -167,26 +174,19 @@
         }
 
         function initMobileControls() {
-            const joystick = nipplejs.create({
-                zone: document.getElementById('joystick-zone'),
-                mode: 'static',
-                position: { left: '70px', bottom: '70px' },
-                color: '#7c3aed'
-            });
+            // Configuration des écoutes tactiles sur les flèches HTML
+            const setupBtn = (id, pressHandler) => {
+                const el = document.getElementById(id);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); pressHandler(true); }, {passive: false});
+                el.addEventListener('touchend', (e) => { e.preventDefault(); pressHandler(false); }, {passive: false});
+            };
 
-            joystick.on('move', (evt, data) => {
-                if (!data.angle) return;
-                const angle = data.angle.radian;
-                moveForward = Math.sin(angle) > 0.3;
-                moveBackward = Math.sin(angle) < -0.3;
-                moveRight = Math.cos(angle) > 0.3;
-                moveLeft = Math.cos(angle) < -0.3;
-            });
+            setupBtn('btn-up', (val) => moveForward = val);
+            setupBtn('btn-down', (val) => moveBackward = val);
+            setupBtn('btn-left', (val) => moveLeft = val);
+            setupBtn('btn-right', (val) => moveRight = val);
 
-            joystick.on('end', () => {
-                moveForward = moveBackward = moveLeft = moveRight = false;
-            });
-
+            // Orientation du regard (Swipe sur la moitié droite de l'écran)
             window.addEventListener('touchstart', (e) => {
                 if (e.touches[0].clientX < window.innerWidth / 2) return;
                 touchStartPoint.x = e.touches[0].clientX;
@@ -202,7 +202,7 @@
                 touchStartPoint.x = e.touches[0].clientX;
                 touchStartPoint.y = e.touches[0].clientY;
 
-                const sensitivity = 0.003;
+                const sensitivity = 0.004; // Sensibilité du regard
                 euler.setFromQuaternion(camera.quaternion);
                 euler.y -= deltaX * sensitivity;
                 euler.x -= deltaY * sensitivity;
@@ -216,28 +216,22 @@
             const group = new THREE.Group();
             group.position.set(x, y, z);
             
-            // Cadre Premium Épais (Noir / Or discret)
             const cadre = new THREE.Mesh(
-                new THREE.BoxGeometry(2.8, 2.8, 0.12), 
-                new THREE.MeshStandardMaterial({ color: 0x0a0a0d, roughness: 0.6, metalness: 0.2 })
+                new THREE.BoxGeometry(2.4, 2.4, 0.1), 
+                new THREE.MeshStandardMaterial({ color: 0x0a0a0d, roughness: 0.5 })
             );
             group.add(cadre);
 
-            // Toile
             new THREE.TextureLoader().load(metadata.img, (txt) => {
-                const toile = new THREE.Mesh(
-                    new THREE.PlaneGeometry(2.6, 2.6), 
-                    new THREE.MeshStandardMaterial({ map: txt, roughness: 0.2, metalness: 0.1 })
-                );
-                toile.position.z = 0.07;
+                const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshStandardMaterial({ map: txt }));
+                toile.position.z = 0.06;
                 toile.userData = metadata;
                 group.add(toile);
                 artworks.push(toile);
             });
 
-            // SPOTLIGHT (Lumière de musée braquée sur l'œuvre)
-            const spotLight = new THREE.SpotLight(0xffffff, 8, 12, Math.PI / 5, 0.6, 1);
-            spotLight.position.set(x, 5.5, z + 2.5); // Placé en hauteur devant l'œuvre
+            const spotLight = new THREE.SpotLight(0xffffff, 7, 10, Math.PI / 5, 0.5, 1);
+            spotLight.position.set(x, 5, z + 2);
             spotLight.target = group;
             scene.add(spotLight);
             scene.add(spotLight.target);
@@ -254,58 +248,45 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            const time = performance.now();
-            const delta = (time - prevTime) / 1000;
+            // Vitesse de déplacement fixe et réactive pour mobile
+            const moveSpeed = 0.08; 
 
-            velocity.x -= velocity.x * 10.0 * delta;
-            velocity.z -= velocity.z * 10.0 * delta;
-
-            direction.z = Number(moveForward) - Number(moveBackward);
-            direction.x = Number(moveRight) - Number(moveLeft);
-            direction.normalize();
-
-            const speed = isMobile ? 22.0 : 35.0;
-            if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-            if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
-
-            if(!isMobile) {
-                controls.moveRight(-velocity.x * delta);
-                controls.moveForward(-velocity.z * delta);
-            } else {
-                const camTargetDirection = new THREE.Vector3();
-                camera.getWorldDirection(camTargetDirection);
-                camTargetDirection.y = 0; 
-                camTargetDirection.normalize();
+            if (isMobile) {
+                const camDirection = new THREE.Vector3();
+                camera.getWorldDirection(camDirection);
+                camDirection.y = 0; // Conserve la hauteur fixe (marche au sol)
+                camDirection.normalize();
 
                 const camRight = new THREE.Vector3();
-                camRight.crossVectors(camera.up, camTargetDirection).normalize();
+                camRight.crossVectors(camera.up, camDirection).normalize();
 
-                if (moveForward || moveBackward) camera.position.addScaledVector(camTargetDirection, -velocity.z * delta * 0.1);
-                if (moveLeft || moveRight) camera.position.addScaledVector(camRight, velocity.x * delta * 0.1);
+                if (moveForward) camera.position.addScaledVector(camDirection, moveSpeed);
+                if (moveBackward) camera.position.addScaledVector(camDirection, -moveSpeed);
+                if (moveLeft) camera.position.addScaledVector(camRight, moveSpeed);
+                if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
             }
 
-            // Murs / Limites de marche ajustées
+            // Limites des murs
             const pos = camera.position;
-            if (pos.x > 15) pos.x = 15; if (pos.x < -15) pos.x = -15;
-            if (pos.z > 15) pos.z = 15; if (pos.z < -6) pos.z = -6; // Bloque avant de rentrer dans le mur
+            if (pos.x > 14) pos.x = 14; if (pos.x < -14) pos.x = -14;
+            if (pos.z > 14) pos.z = 14; if (pos.z < -4) pos.z = -4;
 
-            // Détection de proximité
+            // Scanner de proximité
             raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycasterProximite.intersectObjects(artworks);
 
             const hud = document.getElementById('hud-cartel');
-            if (intersects.length > 0 && intersects[0].distance < 3.8) {
+            if (intersects.length > 0 && intersects[0].distance < 3.5) {
                 const data = intersects[0].object.userData;
                 document.getElementById('art-title').innerText = data.title;
                 document.getElementById('art-artist').innerText = `Par : ${data.artist}`;
                 document.getElementById('art-desc').innerText = data.desc;
-                document.getElementById('art-hash').innerText = `Polygon Contract: ${data.hash}`;
+                document.getElementById('art-hash').innerText = `Polygon: ${data.hash}`;
                 hud.style.display = 'block';
             } else {
                 hud.style.display = 'none';
             }
 
-            prevTime = time;
             renderer.render(scene, camera);
         }
     </script>
