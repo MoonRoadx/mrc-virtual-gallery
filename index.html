@@ -5,47 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Visite Mobile - Musée MRC Protocol</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #000; user-select: none; -webkit-user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #050508; user-select: none; -webkit-user-select: none; }
         canvas { display: block; }
 
-        /* Écran de démarrage PC */
         #blocker {
             position: absolute; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.8);
+            background-color: rgba(5, 5, 8, 0.85);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: #fff; text-align: center; cursor: pointer; z-index: 10;
         }
-        #instructions { font-size: 20px; border: 2px solid #7c3aed; padding: 20px; border-radius: 8px; background: rgba(124, 58, 237, 0.1); }
+        #instructions { font-size: 18px; border: 2px solid #7c3aed; padding: 20px; border-radius: 12px; background: rgba(124, 58, 237, 0.15); box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
         
-        /* Zone du Joystick Virtuel (Visible uniquement sur mobile/tactile) */
-        #joystick-zone {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 120px;
-            height: 120px;
-            z-index: 20;
-            display: none; /* Activé dynamiquement en JS si tactile */
-        }
+        #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; z-index: 20; display: none; }
 
-        /* Cartel d'information adapté au mobile (Positionné en bas pour les pouces) */
         #hud-cartel {
             position: absolute; bottom: 20px; right: 20px; left: 20px;
-            background: rgba(10, 10, 12, 0.95); border-top: 4px solid #7c3aed;
-            color: white; padding: 15px; border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            display: none; z-index: 5;
+            background: rgba(15, 15, 20, 0.95); border-top: 4px solid #7c3aed;
+            color: white; padding: 20px; border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+            display: none; z-index: 5; backdrop-filter: blur(10px);
         }
         @media(min-width: 768px) {
-            /* Repositionnement en haut à droite sur grand écran */
-            #hud-cartel { top: 30px; right: 30px; left: auto; bottom: auto; width: 320px; border-top: none; border-left: 4px solid #7c3aed; }
+            #hud-cartel { top: 30px; right: 30px; left: auto; bottom: auto; width: 340px; border-top: none; border-left: 4px solid #7c3aed; }
         }
-        #hud-cartel h2 { margin: 0 0 4px 0; font-size: 1.1em; color: #a78bfa; }
-        #hud-cartel h3 { margin: 0 0 8px 0; font-size: 0.9em; color: #9ca3af; font-weight: 400; }
-        #hud-cartel p { font-size: 0.8em; line-height: 1.4; color: #d1d5db; margin-bottom: 8px; }
-        .mrc-tag { font-size: 0.65em; background: #7c3aed; padding: 2px 6px; border-radius: 3px; font-weight: bold; }
+        #hud-cartel h2 { margin: 0 0 6px 0; font-size: 1.2em; color: #a78bfa; }
+        #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #9ca3af; font-weight: 400; }
+        #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; margin-bottom: 10px; }
+        .mrc-tag { font-size: 0.7em; background: #7c3aed; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
-    
     <script type="importmap">
         {
             "imports": {
@@ -60,19 +47,19 @@
 
     <div id="blocker">
         <div id="instructions">
-            CLIQUEZ / TOUCHEZ POUR ENTRER<br>
-            <span style="font-size: 13px; color:#a78bfa;">Mobile : Joystick pour marcher, glisser pour regarder.</span>
+            ENTRER DANS LE VERNISSAGE MRC<br>
+            <span style="font-size: 12px; color:#a78bfa; display:block; margin-top:10px;">Joystick à gauche pour marcher.<br>Glisser à droite pour orienter le regard.</span>
         </div>
     </div>
 
     <div id="joystick-zone"></div>
 
     <div id="hud-cartel">
-        <span class="mrc-tag">PROTCOLE MRC VALIDÉ</span>
+        <span class="mrc-tag">Protocole MRC Authentifié</span>
         <h2 id="art-title">Nom de l'œuvre</h2>
         <h3 id="art-artist">Par Artiste</h3>
         <p id="art-desc">Description</p>
-        <small style="color: #6b7280; font-family: monospace; font-size:0.7em;" id="art-hash">0x...</small>
+        <small style="color: #6b7280; font-family: monospace; font-size:0.75em;" id="art-hash">0x...</small>
     </div>
 
     <script type="module">
@@ -82,12 +69,10 @@
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         
-        // Variables pour la physique
         let prevTime = performance.now();
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
 
-        // Variables pour le tactile / rotation de la caméra
         let isMobile = false;
         let touchStartPoint = { x: 0, y: 0 };
         const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -96,70 +81,77 @@
         const raycasterProximite = new THREE.Raycaster();
 
         const mrcDatabase = [
-            { id: "art1", title: "Genèse Polygon", artist: "Nils O.", desc: "Structure matricielle générée via le protocole MRC.", hash: "0x7a8b...32f1", img: "https://picsum.photos/id/1043/600/600" },
-            { id: "art2", title: "Flot Séquentiel", artist: "Eva R.", desc: "Étude cinétique des flux de blocs de la blockchain.", hash: "0x4e91...88ab", img: "https://picsum.photos/id/1081/600/600" }
+            { id: "art1", title: "Genèse Polygon #01", artist: "MoonRoadX", desc: "Première structure matricielle immuable générée via le protocole MRC sur le réseau Polygon.", hash: "0x7a8b92c...32f1", img: "https://picsum.photos/id/1043/800/800" },
+            { id: "art2", title: "Flot Séquentiel #04", artist: "Eva R.", desc: "Étude cinétique des flux de blocs et de gaz de la blockchain en temps réel.", hash: "0x4e9100a...88ab", img: "https://picsum.photos/id/1081/800/800" }
         ];
 
         init();
         animate();
 
         function init() {
-            // Détecter si l'appareil est tactile
             isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.7, 5);
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.7, 6); // Position de départ reculée pour mieux voir
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050507);
+            scene.background = new THREE.Color(0x060609);
+            scene.fog = new THREE.FogExp2(0x060609, 0.07);
 
             controls = new PointerLockControls(camera, document.body);
-
             const blocker = document.getElementById('blocker');
             
             if (!isMobile) {
-                // Gestion classique PC
                 blocker.addEventListener('click', () => controls.lock());
-                controls.addEventListener('lock', () => blocker.style.display = 'none');
+                controls.addEventListener('lock', () => blocker.style.style.display = 'none');
                 controls.addEventListener('unlock', () => blocker.style.display = 'flex');
-                
-                // Événements clavier PC
                 document.addEventListener('keydown', (e) => handleKey(e.code, true));
                 document.addEventListener('keyup', (e) => handleKey(e.code, false));
             } else {
-                // Gestion Mobile
                 blocker.addEventListener('touchstart', () => {
                     blocker.style.display = 'none';
                     document.getElementById('joystick-zone').style.display = 'block';
                 });
-                
                 initMobileControls();
             }
 
             scene.add(controls.getObject());
 
-            // --- LUMIÈRES & ARCHITECTURE ---
-            scene.add(new THREE.AmbientLight(0xffffff, 0.15));
-            const mainLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            mainLight.position.set(0, 8, 0);
-            scene.add(mainLight);
+            // --- ÉCLAIRAGE ARCHITECTURAL ---
+            // Lumière ambiante très douce pour boucher les noirs profonds
+            scene.add(new THREE.AmbientLight(0xffffff, 0.08));
 
-            // Sol et Murs
-            const floorGeo = new THREE.PlaneGeometry(30, 30);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.3 });
+            // Lumière douce venant du plafond pour dessiner le sol
+            const topLight = new THREE.DirectionalLight(0xa78bfa, 0.2); // Teinte violette Polygon
+            topLight.position.set(0, 10, 0);
+            scene.add(topLight);
+
+            // --- ARCHITECTURE DE LA SALLE ---
+            // Sol Style Béton Sombre / Galerie de nuit
+            const floorGeo = new THREE.PlaneGeometry(40, 40);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x121216, 
+                roughness: 0.15, 
+                metalness: 0.5 
+            });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            createWall(30, 5, 0, 2.5, -10, 0); // Mur du fond
+            // Grand Mur d'exposition en briques ou béton sombre
+            const wallGeo = new THREE.PlaneGeometry(40, 6);
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 0.8 });
+            const backWall = new THREE.Mesh(wallGeo, wallMat);
+            backWall.position.set(0, 3, -8);
+            scene.add(backWall);
 
-            // Accrochage des oeuvres
-            accrocherTableau(-4, 2.2, -9.8, 0, mrcDatabase[0]);
-            accrocherTableau(4, 2.2, -9.8, 0, mrcDatabase[1]);
+            // --- ACCROCHAGE & LOOK DESŒUVRES ---
+            accrocherTableau(-3.5, 2.3, -7.9, mrcDatabase[0]);
+            accrocherTableau(3.5, 2.3, -7.9, mrcDatabase[1]);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Évite de ramer sur les mobiles d'entrée de gamme
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
             window.addEventListener('resize', onWindowResize);
@@ -174,20 +166,17 @@
             }
         }
 
-        // --- ENTRAINEMENT TACTILE (Joystick + Swipe) ---
         function initMobileControls() {
-            // 1. Instanciation du Joystick (Marche) via Nipple.js
             const joystick = nipplejs.create({
                 zone: document.getElementById('joystick-zone'),
                 mode: 'static',
-                position: { left: '60px', bottom: '60px' },
+                position: { left: '70px', bottom: '70px' },
                 color: '#7c3aed'
             });
 
             joystick.on('move', (evt, data) => {
                 if (!data.angle) return;
                 const angle = data.angle.radian;
-                // Calcul des directions en fonction de l'inclinaison du joystick
                 moveForward = Math.sin(angle) > 0.3;
                 moveBackward = Math.sin(angle) < -0.3;
                 moveRight = Math.cos(angle) > 0.3;
@@ -198,9 +187,7 @@
                 moveForward = moveBackward = moveLeft = moveRight = false;
             });
 
-            // 2. Glisser le doigt sur la partie droite de l'écran (Regarder autour)
             window.addEventListener('touchstart', (e) => {
-                // On ignore les touches sur le côté gauche (réservé au joystick)
                 if (e.touches[0].clientX < window.innerWidth / 2) return;
                 touchStartPoint.x = e.touches[0].clientX;
                 touchStartPoint.y = e.touches[0].clientY;
@@ -215,39 +202,45 @@
                 touchStartPoint.x = e.touches[0].clientX;
                 touchStartPoint.y = e.touches[0].clientY;
 
-                // Sensibilité de rotation sur mobile
-                const sensitivity = 0.0025;
+                const sensitivity = 0.003;
                 euler.setFromQuaternion(camera.quaternion);
                 euler.y -= deltaX * sensitivity;
                 euler.x -= deltaY * sensitivity;
                 
-                // On limite l'axe vertical pour ne pas se tordre le cou en 3D
-                euler.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, euler.x));
+                euler.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.x));
                 camera.quaternion.setFromEuler(euler);
             }, { passive: true });
         }
 
-        function createWall(w, h, x, y, z, rotY) {
-            const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ color: 0x16161a }));
-            wall.position.set(x, y, z);
-            wall.rotation.y = rotY;
-            scene.add(wall);
-        }
-
-        function accrocherTableau(x, y, z, rotY, metadata) {
+        function accrocherTableau(x, y, z, metadata) {
             const group = new THREE.Group();
             group.position.set(x, y, z);
             
-            const cadre = new THREE.Mesh(new THREE.BoxGeometry(2.7, 2.7, 0.08), new THREE.MeshStandardMaterial({ color: 0x09090b }));
+            // Cadre Premium Épais (Noir / Or discret)
+            const cadre = new THREE.Mesh(
+                new THREE.BoxGeometry(2.8, 2.8, 0.12), 
+                new THREE.MeshStandardMaterial({ color: 0x0a0a0d, roughness: 0.6, metalness: 0.2 })
+            );
             group.add(cadre);
 
+            // Toile
             new THREE.TextureLoader().load(metadata.img, (txt) => {
-                const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 2.5), new THREE.MeshStandardMaterial({ map: txt }));
-                toile.position.z = 0.05;
+                const toile = new THREE.Mesh(
+                    new THREE.PlaneGeometry(2.6, 2.6), 
+                    new THREE.MeshStandardMaterial({ map: txt, roughness: 0.2, metalness: 0.1 })
+                );
+                toile.position.z = 0.07;
                 toile.userData = metadata;
                 group.add(toile);
                 artworks.push(toile);
             });
+
+            // SPOTLIGHT (Lumière de musée braquée sur l'œuvre)
+            const spotLight = new THREE.SpotLight(0xffffff, 8, 12, Math.PI / 5, 0.6, 1);
+            spotLight.position.set(x, 5.5, z + 2.5); // Placé en hauteur devant l'œuvre
+            spotLight.target = group;
+            scene.add(spotLight);
+            scene.add(spotLight.target);
 
             scene.add(group);
         }
@@ -271,47 +264,42 @@
             direction.x = Number(moveRight) - Number(moveLeft);
             direction.normalize();
 
-            // Vitesse adaptée
-            const speed = isMobile ? 25.0 : 40.0;
+            const speed = isMobile ? 22.0 : 35.0;
             if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
             if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
-            // Déplacement de la caméra (Gestion hybride PC / Mobile)
             if(!isMobile) {
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
             } else {
-                // Sur mobile, on déplace la caméra manuellement dans l'espace selon son orientation globale
                 const camTargetDirection = new THREE.Vector3();
                 camera.getWorldDirection(camTargetDirection);
-                camTargetDirection.y = 0; // On reste au sol
+                camTargetDirection.y = 0; 
                 camTargetDirection.normalize();
 
                 const camRight = new THREE.Vector3();
                 camRight.crossVectors(camera.up, camTargetDirection).normalize();
 
-                if (moveForward) camera.position.addScaledVector(camTargetDirection, -velocity.z * delta * 0.1);
-                if (moveBackward) camera.position.addScaledVector(camTargetDirection, -velocity.z * delta * 0.1);
-                if (moveLeft) camera.position.addScaledVector(camRight, velocity.x * delta * 0.1);
-                if (moveRight) camera.position.addScaledVector(camRight, velocity.x * delta * 0.1);
+                if (moveForward || moveBackward) camera.position.addScaledVector(camTargetDirection, -velocity.z * delta * 0.1);
+                if (moveLeft || moveRight) camera.position.addScaledVector(camRight, velocity.x * delta * 0.1);
             }
 
-            // Murs invisibles / Limites
+            // Murs / Limites de marche ajustées
             const pos = camera.position;
-            if (pos.x > 13) pos.x = 13; if (pos.x < -13) pos.x = -13;
-            if (pos.z > 13) pos.z = 13; if (pos.z < -9) pos.z = -9;
+            if (pos.x > 15) pos.x = 15; if (pos.x < -15) pos.x = -15;
+            if (pos.z > 15) pos.z = 15; if (pos.z < -6) pos.z = -6; // Bloque avant de rentrer dans le mur
 
-            // Scanner de proximité pour le cartel (Fonctionne en continu)
+            // Détection de proximité
             raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycasterProximite.intersectObjects(artworks);
 
             const hud = document.getElementById('hud-cartel');
-            if (intersects.length > 0 && intersects[0].distance < 4.0) {
+            if (intersects.length > 0 && intersects[0].distance < 3.8) {
                 const data = intersects[0].object.userData;
                 document.getElementById('art-title').innerText = data.title;
                 document.getElementById('art-artist').innerText = `Par : ${data.artist}`;
                 document.getElementById('art-desc').innerText = data.desc;
-                document.getElementById('art-hash').innerText = `Poly-Contract: ${data.hash}`;
+                document.getElementById('art-hash').innerText = `Polygon Contract: ${data.hash}`;
                 hud.style.display = 'block';
             } else {
                 hud.style.display = 'none';
