@@ -1,477 +1,209 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Le Louvre Virtuel - Complexe Muséal MRC</title>
-    <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #030305; user-select: none; -webkit-user-select: none; }
-        canvas { display: block; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Musée Virtuel - Maison Luxueuse</title>
+  <style>
+    :root {
+      --or: #c9a24a;
+      --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      width: 100%; height: 100%;
+      background: #05040a; font-family: var(--sans);
+    }
+    canvas { display: block; }
 
-        #blocker {
-            position: absolute; width: 100%; height: 100%;
-            background-color: rgba(3, 3, 5, 0.95);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: #fff; text-align: center; cursor: pointer; z-index: 10;
-        }
-        #instructions { font-size: 18px; border: 2px solid #d4af37; padding: 25px; border-radius: 12px; background: rgba(212, 175, 55, 0.1); text-align: center; max-width: 85%; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
-        
-        #pad-zone { position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; z-index: 20; display: none; }
-        .btn-dir { position: absolute; background: rgba(212, 175, 55, 0.2); border: 2px solid rgba(212, 175, 55, 0.6); border-radius: 50%; color: #d4af37; font-weight: bold; text-align: center; line-height: 44px; width: 44px; height: 44px; font-size: 18px; }
-        #btn-up { top: 0; left: 48px; }
-        #btn-left { top: 48px; left: 0; }
-        #btn-right { top: 48px; right: 0; }
-        #btn-down { bottom: 0; left: 48px; }
-
-        #hud-cartel {
-            position: absolute; 
-            top: 20px; right: 20px; left: 20px;
-            background: rgba(20, 15, 15, 0.95); 
-            border-left: 4px solid #d4af37;
-            color: white; padding: 18px; border-radius: 12px; display: none; z-index: 30; backdrop-filter: blur(10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-            pointer-events: auto;
-        }
-        @media(min-width: 768px) { #hud-cartel { right: 30px; left: auto; width: 350px; top: 30px; } }
-        #hud-cartel h2 { margin: 0 0 4px 0; font-size: 1.2em; color: #f3e5ab; }
-        #hud-cartel h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #bbaea6; font-weight: normal; }
-        #hud-cartel p { font-size: 0.85em; line-height: 1.5; color: #e5e7eb; margin-bottom: 15px; }
-        .mrc-tag { font-size: 0.65em; background: #d4af37; color: #111; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 6px; }
-        
-        .web3-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
-        .btn-web3 { 
-            display: block; text-align: center; text-decoration: none;
-            padding: 10px; font-size: 0.8em; font-weight: bold; border-radius: 6px;
-            transition: all 0.2s ease; cursor: pointer;
-        }
-        .btn-primary-w3 { background: #d4af37; color: #111; border: 1px solid #d4af37; }
-        .btn-primary-w3:hover { background: #f3e5ab; }
-        .btn-secondary-w3 { background: transparent; color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.5); }
-        .btn-secondary-w3:hover { background: rgba(212, 175, 55, 0.1); border-color: #d4af37; }
-
-        #shortcut-hint { font-size: 11px; text-align: center; color: #8a7a70; font-family: monospace; margin-top: 5px; font-weight: bold; }
-        #loading-status { color: #d4af37; font-size: 13px; margin-top: 15px; font-family: monospace; }
-    </style>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.1/ethers.umd.min.js"></script>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
+    /* Écran de chargement et d'instructions */
+    #blocker {
+      position: absolute; inset: 0; z-index: 40; cursor: pointer;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background: radial-gradient(circle, rgba(40,28,20,0.8), rgba(5,4,8,0.95));
+      color: white; text-align: center;
+    }
+    #instructions { font-size: 1.2rem; margin-top: 20px; }
+    #loading { font-size: 1.5rem; color: var(--or); font-weight: bold; }
+  </style>
 </head>
 <body>
 
-    <div id="blocker">
-        <div id="instructions">
-            ENTRER DANS LE COMPLEXE HISTORIQUE<br>
-            <span style="font-size: 12px; color:#d4af37; display:block; margin-top:10px;">PC : Touches Z, Q, S, D + Souris.<br>Mobile : Flèches à gauche + Glisser à droite.</span>
-            <div id="loading-status">Érection des ailes du musée...</div>
-        </div>
+  <div id="blocker">
+    <div id="loading">Chargement de la maison luxueuse...</div>
+    <div id="instructions" style="display:none;">
+      <h1>Musée Virtuel</h1>
+      <p>Cliquez pour entrer</p>
+      <p>Z/Q/S/D ou Flèches pour bouger • Souris pour regarder</p>
     </div>
+  </div>
 
-    <div id="pad-zone">
-        <div id="btn-up" class="btn-dir">▲</div>
-        <div id="btn-left" class="btn-dir">◀</div>
-        <div id="btn-right" class="btn-dir">▶</div>
-        <div id="btn-down" class="btn-dir">▼</div>
-    </div>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
 
-    <div id="hud-cartel">
-        <span class="mrc-tag">Passeport MRC On-Chain</span>
-        <h2 id="art-title">Chargement...</h2>
-        <h3 id="art-artist">Propriétaire : --</h3>
-        <p id="art-desc">Analyse cryptographique.</p>
-        
-        <div class="web3-actions">
-            <a id="web3-btn-marketplace" href="#" target="_blank" class="btn-web3 btn-primary-w3">FAIRE UNE OFFRE</a>
-            <a id="web3-btn-scan" href="#" target="_blank" class="btn-web3 btn-secondary-w3">VOIR SUR POLYGONSCAN</a>
-            <div id="shortcut-hint">💡 Astuce PC : Appuyez sur [ECHAF] pour libérer la souris.</div>
-        </div>
-    </div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    /* ============================================================
+       1. VARIABLES GLOBALES
+    ============================================================ */
+    let scene, camera, renderer, controls;
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+    let prevTime = performance.now();
+    const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
 
-        let camera, scene, renderer, controls;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let isMobile = false;
-        let touchStartPoint = { x: 0, y: 0 };
-        const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-        const artworks = []; 
-        const raycasterProximite = new THREE.Raycaster();
+    /* ============================================================
+       2. TES ŒUVRES D'ART (NFTs)
+    ============================================================ */
+    const ART = [
+      { 
+        // Modifie x, y, z pour placer le tableau sur les murs de la maison !
+        x: 0, y: 2, z: -5, w: 1.5, h: 2, 
+        img: 'assets/image_8cb976.png', // Ton image !
+        title: 'Mon Oeuvre'
+      }
+    ];
 
-        let currentActiveTokenId = null;
+    /* ============================================================
+       3. INITIALISATION DE LA SCÈNE
+    ============================================================ */
+    function init() {
+      // Scène et Caméra
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x05040a); // Fond noir/nuit
+      scene.fog = new THREE.Fog(0x05040a, 10, 50);
 
-        const contractAddress = "0x5De79f385FFe00DD5951AaB522082B6F76a084ac"; 
-        const monEndpointRPC = "https://polygon-mainnet.g.alchemy.com/v2/LhJWDQu5B7mVyn18mVfI0"; 
-        const mrcABI = ["function uri(uint256 id) public view returns (string memory)"];
-        const ipfsGateway = "https://cloudflare-ipfs.com/ipfs/";
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 1.6, 0); // Hauteur des yeux
 
-        // POSITIONNEMENT MULTI-SALLES (Le vrai circuit)
-        const configurationCircuit = [
-            { id: 1, x: -11.9, y: 2.5, z: -4,    rotY: Math.PI / 2 },  // Salle de Gauche
-            { id: 3, x: 0,     y: 2.5, z: -11.9, rotY: 0 },            // Salle Centrale du Fond
-            { id: 4, x: 11.9,  y: 2.5, z: -4,    rotY: -Math.PI / 2 }  // Salle de Droite
-        ];
+      // Lumières
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Lumière globale
+      scene.add(ambientLight);
+      
+      const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+      dirLight.position.set(10, 20, 10);
+      scene.add(dirLight);
 
-        init3D();
-        animate();
-        chargerCircuitBlockchain();
+      // Contrôles (Souris et Clavier)
+      controls = new PointerLockControls(camera, document.body);
+      
+      const blocker = document.getElementById('blocker');
+      const instructions = document.getElementById('instructions');
+      const loading = document.getElementById('loading');
 
-        function init3D() {
-            isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.7, 4); // Position de départ
+      instructions.addEventListener('click', () => controls.lock());
+      controls.addEventListener('lock', () => blocker.style.display = 'none');
+      controls.addEventListener('unlock', () => blocker.style.display = 'flex');
+      scene.add(controls.getObject());
 
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0706); 
-            scene.fog = new THREE.FogExp2(0x0a0706, 0.04);
-
-            controls = new PointerLockControls(camera, document.body);
-            const blocker = document.getElementById('blocker');
-            
-            blocker.addEventListener('click', (e) => {
-                if(document.getElementById('hud-cartel').contains(e.target)) return;
-                if (!isMobile) controls.lock();
-                else {
-                    blocker.style.display = 'none';
-                    document.getElementById('pad-zone').style.display = 'block';
-                }
-            });
-
-            controls.addEventListener('lock', () => blocker.style.display = 'none');
-            controls.addEventListener('unlock', () => { if(!isMobile) blocker.style.display = 'flex'; });
-
-            document.addEventListener('keydown', (e) => {
-                handleKey(e.code, true);
-                if ((e.code === 'KeyE' || e.code === 'Enter') && currentActiveTokenId !== null && controls.isLocked) {
-                    window.open(`https://opensea.io/assets/polygon/${contractAddress}/${currentActiveTokenId}`, '_blank');
-                }
-            });
-            document.addEventListener('keyup', (e) => handleKey(e.code, false));
-
-            if (isMobile) initMobileControls();
-            scene.add(controls.getObject());
-
-            // Éclairages
-            scene.add(new THREE.AmbientLight(0xffecc4, 0.14)); 
-
-            // Matériaux d'époque
-            const textureLoader = new THREE.TextureLoader();
-            const floorTex = textureLoader.load('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=60'); 
-            floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(12, 12);
-
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map: floorTex, color: 0x5a3d28, roughness: 0.18 }));
-            floor.rotation.x = -Math.PI / 2; scene.add(floor);
-
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a121a, roughness: 0.7 });
-            const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.1 });
-            const marbleMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.08, metalness: 0.1 });
-            const velvetMat = new THREE.MeshStandardMaterial({ color: 0x3b0b11, roughness: 0.9 }); 
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x110a08, roughness: 0.4 });
-
-            // CONSTRUCTEUR DE CLOISONNEMENT INDIVIDUEL (Murs intérieurs et extérieurs)
-            function monterMur(largeur, hauteur, x, y, z, rotationY) {
-                const wallGroup = new THREE.Group();
-                const wall = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur), wallMat);
-                wallGroup.add(wall);
-
-                const lineBot = new THREE.Mesh(new THREE.BoxGeometry(largeur, 0.08, 0.03), goldMat);
-                lineBot.position.set(0, -hauteur/2 + 1.2, 0.02); wallGroup.add(lineBot);
-
-                const lineTop = new THREE.Mesh(new THREE.BoxGeometry(largeur, 0.08, 0.03), goldMat);
-                lineTop.position.set(0, hauteur/2 - 1.0, 0.02); wallGroup.add(lineTop);
-
-                wallGroup.position.set(x, y, z); wallGroup.rotation.y = rotationY;
-                scene.add(wallGroup);
-            }
-
-            // --- GÉOMÉTRIE DU COMPLEXE MULTI-SALLES (LE VRAI LABYRINTHE) ---
-            // Murs extérieurs des ailes
-            monterMur(24, 8, -12, 4, -4, Math.PI / 2);   // Limite Extérieure Gauche
-            monterMur(24, 8, 12, 4, -4, -Math.PI / 2);  // Limite Extérieure Droite
-            monterMur(12, 8, 0, 4, -12, 0);             // Grand fond central
-            monterMur(24, 8, 0, 4, 6, Math.PI);         // Grand mur arrière (Entrée)
-
-            // Cloisons de séparation intérieures (Créent les couloirs et ouvertures)
-            monterMur(8, 8, -4, 4, -2, 0);               // Séparateur gauche face
-            monterMur(8, 8, 4, 4, -2, 0);                // Séparateur droit face
-            monterMur(8, 8, -4, 4, -8, Math.PI / 2);     // Couloir gauche latéral
-            monterMur(8, 8, 4, 4, -8, -Math.PI / 2);    // Couloir droit latéral
-
-            // --- AJOUT DES COLONNES DE MARBRE AUX INTERSECTIONS ---
-            function implanterPilier(x, z) {
-                const pilierGroup = new THREE.Group();
-                const baseBasse = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.6), marbleMat);
-                baseBasse.position.y = 0.1; pilierGroup.add(baseBasse);
-                const colonne = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 7.6, 16), marbleMat);
-                colonne.position.y = 4; pilierGroup.add(colonne);
-                const chapiteau = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.55), marbleMat);
-                chapiteau.position.y = 7.8; pilierGroup.add(chapiteau);
-                pilierGroup.position.set(x, 0, z); scene.add(pilierGroup);
-            }
-
-            // Piliers disposés aux entrées de chaque nouvelle aile
-            implanterPilier(-3.8, -1.8); implanterPilier(3.8, -1.8);
-            implanterPilier(-3.8, -7.8); implanterPilier(3.8, -7.8);
-
-            // --- BANQUETTE CENTRALE MAJESTUEUSE DANS LA NEF ---
-            const banquetteGroup = new THREE.Group();
-            const socleBois = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.15, 1.2), woodMat);
-            socleBois.position.y = 0.075; banquetteGroup.add(socleBois);
-            const assiseVelours = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.3, 1.1), velvetMat);
-            assiseVelours.position.y = 0.45; banquetteGroup.add(assiseVelours);
-            const dossierVelours = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.6, 0.25), velvetMat);
-            dossierVelours.position.set(0, 0.85, 0); banquetteGroup.add(dossierVelours);
-            const cimaiseDossier = new THREE.Mesh(new THREE.BoxGeometry(2.22, 0.04, 0.27), goldMat);
-            cimaiseDossier.position.set(0, 1.15, 0); banquetteGroup.add(cimaiseDossier);
-            
-            banquetteGroup.position.set(0, 0, 1.5); // Canapé d'attente à l'entrée
-            scene.add(banquetteGroup);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.body.appendChild(renderer.domElement);
-
-            window.addEventListener('resize', onWindowResize);
-            document.getElementById('loading-status').innerText = "Musée multi-salles construit !";
+      // Touches du clavier
+      const onKeyDown = (event) => {
+        switch (event.code) {
+          case 'ArrowUp': case 'KeyW': case 'KeyZ': moveForward = true; break;
+          case 'ArrowLeft': case 'KeyA': case 'KeyQ': moveLeft = true; break;
+          case 'ArrowDown': case 'KeyS': moveBackward = true; break;
+          case 'ArrowRight': case 'KeyD': moveRight = true; break;
         }
-
-        async function chargerCircuitBlockchain() {
-            const fallbackData = [
-                { id: 1, title: "Passeport Royal MRC #1", img: "https://picsum.photos/id/1043/800/800", desc: "Exposé dans l'Aile Ouest. Passeport de propriété numérique souverain configuré via le protocole MRC." },
-                { id: 3, title: "Passeport Royal MRC #3", img: "https://picsum.photos/id/1062/800/800", desc: "Exposé dans la Grande Rotonde. Lien On-Chain immuable enregistré sur Polygon Mainnet." },
-                { id: 4, title: "Passeport Royal MRC #4", img: "https://picsum.photos/id/1081/800/800", desc: "Exposé dans l'Aile Est. Certificat cryptographique d'authenticité." }
-            ];
-
-            configurationCircuit.forEach((config, index) => {
-                accrocherTableauCircuit(config.x, config.y, config.z, config.rotY, {
-                    id: config.id,
-                    title: fallbackData[index].title,
-                    artist: `ID Unique : #${config.id}`,
-                    desc: fallbackData[index].desc,
-                    img: fallbackData[index].img
-                });
-            });
-
-            try {
-                const provider = new ethers.JsonRpcProvider(monEndpointRPC);
-                const contract = new ethers.Contract(contractAddress, mrcABI, provider);
-
-                for (let config of configurationCircuit) {
-                    let tokenURI = await contract.uri(config.id);
-                    if (!tokenURI || !tokenURI.startsWith("data:application/json;base64,")) continue;
-
-                    const base64Content = tokenURI.split(",")[1];
-                    const jsonString = decodeURIComponent(atob(base64Content).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-                    const metadata = JSON.parse(jsonString);
-
-                    let rawImg = metadata.image || metadata.image_url || "";
-                    let finalTextureUrl = "";
-
-                    if (rawImg.startsWith("data:image/svg+xml;base64,")) {
-                        const svgText = atob(rawImg.split(",")[1]);
-                        const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
-                        finalTextureUrl = URL.createObjectURL(blob);
-                    } else if (rawImg.startsWith("ipfs://")) {
-                        finalTextureUrl = rawImg.replace("ipfs://", ipfsGateway);
-                    } else if (rawImg.startsWith("http")) {
-                        finalTextureUrl = rawImg;
-                    }
-
-                    if (!finalTextureUrl) continue;
-
-                    const meshToUpdate = artworks.find(mesh => mesh.userData.id === config.id);
-                    if (meshToUpdate) {
-                        new THREE.TextureLoader().load(finalTextureUrl, (newTxt) => {
-                            meshToUpdate.material.map = newTxt;
-                            meshToUpdate.material.needsUpdate = true;
-                        });
-                        meshToUpdate.userData = {
-                            id: config.id,
-                            title: metadata.name || `Passeport MRC #${config.id}`,
-                            artist: metadata.attributes?.find(a => a.trait_type === "Type" || a.trait_type === "Artist")?.value || `ID : #${config.id}`,
-                            desc: metadata.description || "Actif certifié conforme par signature On-Chain."
-                        };
-                    }
-                }
-            } catch (error) {
-                console.log("Maintien des structures visuelles.");
-            }
+      };
+      const onKeyUp = (event) => {
+        switch (event.code) {
+          case 'ArrowUp': case 'KeyW': case 'KeyZ': moveForward = false; break;
+          case 'ArrowLeft': case 'KeyA': case 'KeyQ': moveLeft = false; break;
+          case 'ArrowDown': case 'KeyS': moveBackward = false; break;
+          case 'ArrowRight': case 'KeyD': moveRight = false; break;
         }
+      };
+      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('keyup', onKeyUp);
 
-        function accrocherTableauCircuit(x, y, z, rotationY, metadata) {
-            const group = new THREE.Group();
-            group.position.set(x, y, z);
-            group.rotation.y = rotationY;
-            
-            const goldFrameMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.95, roughness: 0.15 });
-            const cadreArriere = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.15), goldFrameMat);
-            group.add(cadreArriere);
+      // Rendu 3D
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+      window.addEventListener('resize', onWindowResize);
 
-            const moulureInterieure = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 0.2), new THREE.MeshStandardMaterial({ color: 0x1a0a05, roughness: 0.8 }));
-            group.add(moulureInterieure);
+      // Charger le modèle 3D
+      buildLuxuriousScene();
+    }
 
-            new THREE.TextureLoader().load(metadata.img, (txt) => {
-                const toile = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshStandardMaterial({ map: txt, roughness: 0.3 }));
-                toile.position.z = 0.11;
-                toile.userData = metadata; 
-                group.add(toile);
-                artworks.push(toile);
-            });
-
-            // Cartel 3D au mur sous le cadre
-            const cartelPhysiqueGroup = new THREE.Group();
-            cartelPhysiqueGroup.position.set(0, -1.4, 0.05);
-            const supportCartel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 0.02), new THREE.MeshStandardMaterial({ color: 0x110a08, roughness: 0.5 }));
-            cartelPhysiqueGroup.add(supportCartel);
-            const plaquePapier = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.2), new THREE.MeshStandardMaterial({ color: 0xfffcf0, roughness: 0.9 }));
-            plaquePapier.position.z = 0.012; cartelPhysiqueGroup.add(plaquePapier);
-            group.add(cartelPhysiqueGroup);
-
-            // Spot lumineux ciblé
-            const museumSpot = new THREE.SpotLight(0xfff3da, 12, 10, Math.PI / 4.5, 0.5, 1);
-            const dirX = Math.sin(rotationY) * 2.2;
-            const dirZ = Math.cos(rotationY) * 2.2;
-            museumSpot.position.set(x + dirX, 5.5, z + dirZ);
-            museumSpot.target = group;
-            
-            scene.add(museumSpot); scene.add(museumSpot.target);
-            scene.add(group);
+    /* ============================================================
+       4. CHARGEMENT DU MODÈLE GLTF
+    ============================================================ */
+    function buildLuxuriousScene() {
+      const loader = new GLTFLoader();
+      
+      // On cherche le fichier dans le dossier 'assets'
+      loader.load(
+        'assets/uploads_files_5697445_luxurious+house+scene.gltf',
+        function (gltf) {
+          const modele = gltf.scene;
+          modele.position.set(0, 0, 0); // Position au centre
+          scene.add(modele);
+          
+          console.log("✅ Maison luxueuse chargée !");
+          
+          // Affiche le bouton pour jouer
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('instructions').style.display = 'block';
+        },
+        function (xhr) {
+          document.getElementById('loading').innerText = 'Chargement : ' + Math.round((xhr.loaded / xhr.total) * 100) + '%';
+        },
+        function (error) {
+          console.error("❌ Erreur de chargement :", error);
+          document.getElementById('loading').innerText = 'Erreur lors du chargement. Vérifiez les fichiers.';
         }
+      );
+    }
 
-        function handleKey(code, isDown) {
-            switch (code) {
-                case 'KeyW': case 'ArrowUp': moveForward = isDown; break;
-                case 'KeyA': case 'ArrowLeft': moveLeft = isDown; break;
-                case 'KeyS': case 'ArrowDown': moveBackward = isDown; break;
-                case 'KeyD': case 'ArrowRight': moveRight = isDown; break;
-            }
-        }
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
 
-        function initMobileControls() {
-            const setupBtn = (id, pressHandler) => {
-                const el = document.getElementById(id);
-                el.addEventListener('touchstart', (e) => { e.preventDefault(); pressHandler(true); }, {passive: false});
-                el.addEventListener('touchend', (e) => { e.preventDefault(); pressHandler(false); }, {passive: false});
-            };
-            setupBtn('btn-up', (val) => moveForward = val);
-            setupBtn('btn-down', (val) => moveBackward = val);
-            setupBtn('btn-left', (val) => moveLeft = val);
-            setupBtn('btn-right', (val) => moveRight = val);
+    /* ============================================================
+       5. BOUCLE D'ANIMATION
+    ============================================================ */
+    function animate() {
+      requestAnimationFrame(animate);
 
-            window.addEventListener('touchstart', (e) => {
-                if (document.getElementById('hud-cartel').contains(e.target)) return;
-                if (e.touches[0].clientX < window.innerWidth / 2) return;
-                touchStartPoint.x = e.touches[0].clientX; touchStartPoint.y = e.touches[0].clientY;
-            }, { passive: true });
+      const time = performance.now();
+      if (controls.isLocked === true) {
+        const delta = (time - prevTime) / 1000;
 
-            window.addEventListener('touchmove', (e) => {
-                if (document.getElementById('hud-cartel').contains(e.target)) return;
-                if (e.touches[0].clientX < window.innerWidth / 2) return;
-                const deltaX = e.touches[0].clientX - touchStartPoint.x;
-                const deltaY = e.touches[0].clientY - touchStartPoint.y;
-                touchStartPoint.x = e.touches[0].clientX; touchStartPoint.y = e.touches[0].clientY;
+        velocity.x -= velocity.x * 10.0 * delta;
+        velocity.z -= velocity.z * 10.0 * delta;
 
-                const sensitivity = 0.004;
-                euler.setFromQuaternion(camera.quaternion);
-                euler.y -= deltaX * sensitivity; euler.x -= deltaY * sensitivity;
-                euler.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.x));
-                camera.quaternion.setFromEuler(euler);
-            }, { passive: true });
-        }
+        direction.z = Number(moveForward) - Number(moveBackward);
+        direction.x = Number(moveRight) - Number(moveLeft);
+        direction.normalize(); 
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        const speed = 40.0; // Vitesse de marche
+        if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+        if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const moveSpeed = 0.075; 
+        controls.moveRight(-velocity.x * delta);
+        controls.moveForward(-velocity.z * delta);
+      }
+      prevTime = time;
+      renderer.render(scene, camera);
+    }
 
-            if (!isMobile && controls.isLocked) {
-                if (moveForward) controls.moveForward(moveSpeed);
-                if (moveBackward) controls.moveForward(-moveSpeed);
-                if (moveLeft) controls.moveRight(-moveSpeed);
-                if (moveRight) controls.moveRight(moveSpeed);
-            } else if (isMobile) {
-                const camDirection = new THREE.Vector3();
-                camera.getWorldDirection(camDirection);
-                camDirection.y = 0; camDirection.normalize();
-                const camRight = new THREE.Vector3();
-                camRight.crossVectors(camera.up, camDirection).normalize();
-
-                if (moveForward) camera.position.addScaledVector(camDirection, moveSpeed);
-                if (moveBackward) camera.position.addScaledVector(camDirection, -moveSpeed);
-                if (moveLeft) camera.position.addScaledVector(camRight, moveSpeed);
-                if (moveRight) camera.position.addScaledVector(camRight, -moveSpeed);
-            }
-
-            // --- SYSTEM DE MURS DE COLLISIONS POUR LE MULTI-SALLES ---
-            const pos = camera.position;
-            
-            // Frontières extérieures globales du musée
-            if (pos.x > 11.2) pos.x = 11.2; if (pos.x < -11.2) pos.x = -11.2;
-            if (pos.z > 5.2)  pos.z = 5.2;  if (pos.z < -11.2) pos.z = -11.2;
-            
-            // Collision canapé entrée
-            if (pos.z > 0.4 && pos.z < 2.6 && pos.x > -1.6 && pos.x < 1.6) {
-                if (moveForward) pos.z = 0.4; if (moveBackward) pos.z = 2.6;
-            }
-
-            // Murs de séparation intérieurs (Gestion intelligente du passage par les portes)
-            // Zone des cloisons à Z = -2 (Laisse une porte ouverte au centre entre X = -4 et X = 4)
-            if (pos.z < -1.7 && pos.z > -2.3) {
-                if (pos.x < -3.8) pos.z = -1.7; // Bloqué par la cloison gauche
-                if (pos.x > 3.8) pos.z = -1.7;  // Bloqué par la cloison droite
-            }
-            // Zone des couloirs latéraux à X = -4 et X = 4 (Laisse l'accès ouvert vers le fond)
-            if (pos.z < -2 && pos.z > -8) {
-                if (pos.x < -3.7 && pos.x > -4.3) pos.x = -3.7; // Mur latéral gauche
-                if (pos.x > 3.7 && pos.x < 4.3) pos.x = 3.7;   // Mur latéral droit
-            }
-
-            raycasterProximite.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const intersects = raycasterProximite.intersectObjects(artworks);
-
-            const hud = document.getElementById('hud-cartel');
-            if (intersects.length > 0 && intersects[0].distance < 3.8) {
-                const data = intersects[0].object.userData;
-                currentActiveTokenId = data.id; 
-
-                document.getElementById('art-title').innerText = data.title;
-                document.getElementById('art-artist').innerText = data.artist;
-                document.getElementById('art-desc').innerText = data.desc; 
-
-                const btnScan = document.getElementById('web3-btn-scan');
-                const btnMarket = document.getElementById('web3-btn-marketplace');
-                const hintText = document.getElementById('shortcut-hint');
-                
-                btnScan.href = `https://polygonscan.com/token/${contractAddress}?a=${data.id}`;
-                btnMarket.href = `https://opensea.io/assets/polygon/${contractAddress}/${data.id}`;
-
-                if(!isMobile) {
-                    hintText.innerHTML = `💡 Astuce PC : Appuyez sur [E] pour aller sur OpenSea<br>ou [ÉCHAP] pour libérer la souris.`;
-                } else {
-                    hintText.innerHTML = `Toucher un bouton pour exécuter l'action.`;
-                }
-
-                hud.style.display = 'block';
-            } else {
-                if(intersects.length === 0) currentActiveTokenId = null;
-                hud.style.display = 'none';
-            }
-
-            renderer.render(scene, camera);
-        }
-    </script>
+    // Lancement de l'application
+    init();
+    animate();
+  </script>
 </body>
 </html>
